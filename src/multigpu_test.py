@@ -1,3 +1,5 @@
+# 多 GPU 测试（不带 SDTP，只测试显存上限）
+
 import argparse
 import subprocess
 import torch

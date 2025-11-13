@@ -1,3 +1,6 @@
+# Multi-GPU SDTP 推理（自动分片）
+
+
 import argparse
 import time
 import torch

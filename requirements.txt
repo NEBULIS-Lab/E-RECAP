@@ -1,3 +1,4 @@
 torch>=2.1
 transformers>=4.39
 datasets>=2.19
+pynvml>=11.5.0
