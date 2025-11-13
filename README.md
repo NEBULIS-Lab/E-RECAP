@@ -48,8 +48,18 @@ SDTP/
 
 ### Installation
 
+**Prerequisites:**
+- Install CUDA 12.1+ (includes nvcc compiler) and NVIDIA GPU drivers
+- Verify CUDA installation: `nvcc --version` and `nvidia-smi`
+
+**Install Python packages:**
 ```bash
 pip install -r requirements.txt
+```
+
+**Note:** PyTorch will automatically use the installed CUDA version. For CUDA 12.x, install PyTorch with:
+```bash
+pip install torch --index-url https://download.pytorch.org/whl/cu121
 ```
 
 ### Usage

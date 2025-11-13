@@ -1,4 +1,13 @@
+# System Requirements (must be installed separately):
+# - CUDA 12.1+ (includes nvcc compiler)
+# - NVIDIA GPU drivers
+# - Python 3.10+
+
 torch>=2.1
 transformers>=4.39
 datasets>=2.19
 pynvml>=11.5.0
+
+# advanced inference modes
+# accelerate>=0.20.0  # For inference_sdtp_accelerate_tp.py
+# deepspeed>=0.13.0    # For inference_sdtp_deepspeed.py
