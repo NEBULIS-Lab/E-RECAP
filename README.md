@@ -1,6 +1,6 @@
 # SDTP: Selective Dynamic Token Pruning for Large Language Models
 
-This project implements a reproduction of [Saliency-driven Dynamic Token Pruning for Large Language Models](ref_paper.pdf) based on Qwen2-7B.
+This project implements a reproduction of [Saliency-driven Dynamic Token Pruning for Large Language Models](ref_paper.pdf) based on [Qwen2-7B](https://huggingface.co/Qwen/Qwen2-7B).
 
 ## Project Structure
 
@@ -9,7 +9,7 @@ SDTP/
 ├── checkpoints/          # Model weights and checkpoints
 │   ├── pruning_module.pt    # Stage 2 trained Token Pruner
 │   ├── saliency.pt          # Stage 1 saliency baseline
-│   └── qwen2-7b-instruct/   # Qwen2-7B model weights
+│   └── qwen2-7b-instruct/   # [Qwen2-7B](https://huggingface.co/Qwen/Qwen2-7B) model weights
 │
 ├── data/                 # Datasets
 │   └── raw/                 # Raw data files (e.g., Dolly-15k)
