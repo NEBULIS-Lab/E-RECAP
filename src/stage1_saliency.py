@@ -1,31 +1,29 @@
 import random
 from typing import Dict, List
-
+import argparse
 import torch
-import torch.nn as nn
 from datasets import load_from_disk
 from torch.utils.data import DataLoader
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
-MODEL_NAME = "Qwen/Qwen2-7B"
-DATA_PATH = "dolly15k"
-NUM_EXAMPLES = 1000
+MODEL_PATH = "/data/private/user2/workspace/SDTP/checkpoints/qwen2-7b-instruct"
+DATA_PATH = "/data/private/user2/workspace/SDTP/data/raw/dolly15k"
+
 MAX_LEN = 512
 BATCH_SIZE = 1
-PRUNE_LAYERS = [4, 7, 10, 13, 16, 19, 22, 25, 28, 31]
+PRUNE_LAYERS = [4, 7, 10, 13, 16, 19, 22, 25]
 
-
-def build_dataloader(tokenizer: AutoTokenizer) -> DataLoader:
+def build_dataloader(tokenizer: AutoTokenizer, num_samples: int) -> DataLoader:
     dataset = load_from_disk(DATA_PATH)["train"]
     indices = list(range(len(dataset)))
     random.shuffle(indices)
-    indices = indices[:NUM_EXAMPLES]
+    indices = indices[:num_samples]
 
-    examples: List[Dict[str, torch.Tensor]] = []
+    examples = []
     for idx in indices:
         item = dataset[idx]
         text = f"{item['context']}\n{item['response']}"
-        encoding = tokenizer(
+        enc = tokenizer(
             text,
             max_length=MAX_LEN,
             truncation=True,
@@ -34,14 +32,13 @@ def build_dataloader(tokenizer: AutoTokenizer) -> DataLoader:
         )
         examples.append(
             {
-                "input_ids": encoding["input_ids"].squeeze(0),
-                "attention_mask": encoding["attention_mask"].squeeze(0),
+                "input_ids": enc["input_ids"].squeeze(0),
+                "attention_mask": enc["attention_mask"].squeeze(0),
             }
         )
-
     def collate_fn(batch):
-        input_ids = torch.stack([example["input_ids"] for example in batch])
-        attention_mask = torch.stack([example["attention_mask"] for example in batch])
+        input_ids = torch.stack([x["input_ids"] for x in batch])
+        attention_mask = torch.stack([x["attention_mask"] for x in batch])
         labels = input_ids.clone()
         return {
             "input_ids": input_ids,
@@ -52,39 +49,53 @@ def build_dataloader(tokenizer: AutoTokenizer) -> DataLoader:
     return DataLoader(examples, batch_size=BATCH_SIZE, shuffle=False, collate_fn=collate_fn)
 
 
-def main() -> None:
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--num_samples", type=int, default=1000)
+    parser.add_argument("--out_path", type=str, default="checkpoints/saliency.pt")
+    args = parser.parse_args()
+
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
-    model = AutoModelForCausalLM.from_pretrained(MODEL_NAME, torch_dtype=torch.float16)
-    model.to(device)
+
+    tokenizer = AutoTokenizer.from_pretrained(
+        MODEL_PATH,
+        local_files_only=True,
+        trust_remote_code=True
+    )
+
+    model = AutoModelForCausalLM.from_pretrained(
+        MODEL_PATH,
+        local_files_only=True,
+        trust_remote_code=True,
+        torch_dtype=torch.float16,
+        device_map="auto"
+    )
     model.eval()
+    # for p in model.parameters():
+        # p.requires_grad = False
 
-    for param in model.parameters():
-        param.requires_grad = False
+    dataloader = build_dataloader(tokenizer, args.num_samples)
 
-    dataloader = build_dataloader(tokenizer)
+    forward_cache = {}
+    backward_cache = {}
+    saliency_results = {k: [] for k in PRUNE_LAYERS}
 
-    forward_cache: Dict[int, torch.Tensor] = {}
-    backward_cache: Dict[int, torch.Tensor] = {}
+    def create_hooks(layer_idx):
+        def forward_hook(_module, _inp, out):
+            hidden = out[0] if isinstance(out, (tuple, list)) else out
+            forward_cache[layer_idx] = hidden.detach()
 
-    saliency_results: Dict[int, List[torch.Tensor]] = {layer: [] for layer in PRUNE_LAYERS}
-
-    def create_hooks(layer_idx: int):
-        def forward_hook(_module, _input, output):
-            hidden_states = output[0] if isinstance(output, (tuple, list)) else output
-            forward_cache[layer_idx] = hidden_states.detach()
-
-        def backward_hook(_module, grad_input, grad_output):
-            grad_hidden = grad_output[0] if isinstance(grad_output, (tuple, list)) else grad_output
+        def backward_hook(_module, grad_in, grad_out):
+            grad_hidden = grad_out[0] if isinstance(grad_out, (tuple, list)) else grad_out
             backward_cache[layer_idx] = grad_hidden.detach()
 
         return forward_hook, backward_hook
 
-    hooks: List[torch.utils.hooks.RemovableHandle] = []
+    hooks = []
     try:
-        for layer_idx in PRUNE_LAYERS:
-            layer = model.model.layers[layer_idx]
-            f_hook, b_hook = create_hooks(layer_idx)
+        for idx in PRUNE_LAYERS:
+            layer = model.model.layers[idx]
+            f_hook, b_hook = create_hooks(idx)
             hooks.append(layer.register_forward_hook(f_hook))
             hooks.append(layer.register_full_backward_hook(b_hook))
 
@@ -94,7 +105,6 @@ def main() -> None:
             labels = batch["labels"].to(device)
 
             model.zero_grad(set_to_none=True)
-
             outputs = model(
                 input_ids=input_ids,
                 attention_mask=attention_mask,
@@ -105,23 +115,24 @@ def main() -> None:
             loss = outputs.loss
             loss.backward()
 
-            for layer_idx in PRUNE_LAYERS:
-                hidden_states = forward_cache.get(layer_idx)
-                grad_states = backward_cache.get(layer_idx)
-                if hidden_states is None or grad_states is None:
+            for idx in PRUNE_LAYERS:
+                hidden = forward_cache.get(idx)
+                grad = backward_cache.get(idx)
+                if hidden is None or grad is None:
                     continue
 
-                saliency = (hidden_states * grad_states).sum(dim=-1)
-                saliency_results[layer_idx].append(saliency.float().cpu().squeeze(0))
+                sal = (hidden * grad).sum(dim=-1)
+                saliency_results[idx].append(sal.float().cpu().squeeze(0))
 
             forward_cache.clear()
             backward_cache.clear()
 
     finally:
-        for hook in hooks:
-            hook.remove()
+        for h in hooks:
+            h.remove()
 
-    torch.save(saliency_results, "checkpoints/saliency.pt")
+    torch.save(saliency_results, args.out_path)
+    print(f"[OK] Saliency saved to {args.out_path}")
 
 
 if __name__ == "__main__":

@@ -5,26 +5,27 @@ PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$PROJECT_ROOT"
 
 MODE=${1:-profile}
-SHIFTED_ARGS=("${@:2}")
+shift || true
 
 if [ "$MODE" = "profile" ]; then
-  echo "[Inference] Profiling baseline vs SDTP"
-  python3 -u src/inference_sdtp.py \
+  echo "[Multi-GPU Inference] Profiling baseline vs SDTP (device_map=auto)"
+  python3 -u src/inference_sdtp_multigpu.py \
     --mode profile \
     --lengths 4096 8192 16384 32768 \
-    "${SHIFTED_ARGS[@]}"
+    "$@"
+
 elif [ "$MODE" = "generate" ]; then
-  shift
   PROMPT="$*"
   if [ -z "$PROMPT" ]; then
-    PROMPT="Hello, SDTP! Please introduce yourself."
+    PROMPT="Hello, SDTP (multi-GPU)!"
   fi
-  echo "[Inference] Generating text with baseline model"
-  python3 -u src/inference_sdtp.py \
+  echo "[Multi-GPU Inference] Generating baseline text"
+  python3 -u src/inference_sdtp_multigpu.py \
     --mode generate \
     --prompt "$PROMPT"
+
 else
   echo "Unknown mode: $MODE"
-  echo "Usage: $0 [profile|generate] [prompt...]"
+  echo "Usage: $0 [profile|generate] [extra-args-or-prompt]"
   exit 1
 fi
