@@ -1,4 +1,4 @@
-# SDTP: Selective Dynamic Token Pruning for Large Language Models
+# SDTP: Selective Dynamic Token Pruning for Large Language Models [Part1]
 
 This project implements a reproduction of [Saliency-driven Dynamic Token Pruning for Large Language Models](ref_paper.pdf) based on [Qwen2-7B](https://huggingface.co/Qwen/Qwen2-7B).
 
@@ -83,15 +83,15 @@ pip install torch --index-url https://download.pytorch.org/whl/cu121
    bash scripts/run_inference_multigpu.sh
    ```
 
-## Stage 1 Summary
+## Part 1 Summary
 
-Stage 1 implementation completed:
+Part 1 implementation completed:
 - ✅ Saliency baseline computation
 - ✅ Token Pruner module training
 - ✅ Single GPU inference (2.6-3× speedup)
 - ✅ Multi-GPU inference (8-10× speedup)
 
-See [Stage 1 Summary Report](results/part1_sum.md) for detailed results.
+See [Part 1 Summary Report](results/part1_sum.md) for detailed results.
 
 ## Key Features
 
