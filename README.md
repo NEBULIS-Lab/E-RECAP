@@ -10,6 +10,11 @@ SDTP/
 │   ├── pruning_module.pt    # Stage 2 trained Token Pruner
 │   ├── saliency.pt          # Stage 1 saliency baseline
 │   └── qwen2-7b-instruct/   # [Qwen2-7B](https://huggingface.co/Qwen/Qwen2-7B) model weights
+│       ├── config.json          # Model configuration
+│       ├── model.safetensors    # Model weights (safetensors format)
+│       ├── tokenizer.json       # Tokenizer configuration
+│       ├── tokenizer.model      # Tokenizer model file
+│       └── ...                  # Other model files (e.g., generation_config.json, etc.)
 │
 ├── data/                 # Datasets
 │   └── raw/                 # Raw data files (e.g., Dolly-15k)

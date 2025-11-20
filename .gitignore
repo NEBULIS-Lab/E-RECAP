@@ -154,6 +154,8 @@ data/
 
 # Results and outputs
 # results/ - keep all results files (not ignored)
+# Allow JSON files in results/ directory
+!results/*.json
 outputs/
 logs/
 # checkpoints/ - allow checkpoints directory, but only .pt files inside
