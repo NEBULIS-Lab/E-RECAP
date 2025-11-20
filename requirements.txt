@@ -7,6 +7,8 @@ torch>=2.1
 transformers>=4.39
 datasets>=2.19
 pynvml>=11.5.0
+matplotlib>=3.5.0
+numpy>=1.21.0
 
 # advanced inference modes
 # accelerate>=0.20.0  # For inference_sdtp_accelerate_tp.py

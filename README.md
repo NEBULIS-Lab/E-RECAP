@@ -43,7 +43,7 @@ SDTP/
 - CUDA 12.1+
 - **Hardware**: 8× NVIDIA RTX 5880 Ada Generation (48GB VRAM each)
   - Single GPU mode: Uses one GPU
-  - Multi-GPU mode: Uses all 8 GPUs with NVLink cluster
+  - Multi-GPU mode: Uses all 8 GPUs
 - ≥50GB disk space for model storage
 
 ### Installation

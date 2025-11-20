@@ -5,14 +5,23 @@
 - **硬件配置 / Hardware Configuration**: 
   - 8× NVIDIA RTX 5880 Ada Generation GPU
   - 每个 GPU 48GB 显存 / Each GPU: 48GB VRAM
-  - NVLink 集群连接 / NVLink cluster interconnect
+  - PCIe 4.0 ×16 接口，双路 CPU（2-socket server）
+  - 无 NVLink，GPU 间通过 PCIe + NUMA 通信
+  - P2P 带宽：同 NUMA 内 19-22 GB/s，跨 NUMA 12-15 GB/s
+  - NCCL all-reduce 平均带宽：12.34 GB/s
   - 多卡模式使用全部 8 块 GPU / Multi-GPU mode uses all 8 GPUs
   - 单卡模式仅使用其中一块 / Single-GPU mode uses one GPU
   - 最终没有使用proposal中的 RTX 5090（单块显存不足以处理超长上下文，但是我们能用的只有一块）
+
 - 已确保执行过程中没有其他进程占用GPU memory
 - 当前只使用了Qwen 2-7B，其他的模型流程一样，只换脚本里面的路径就行，但是对于当前情况，不准备再跑其他模型
 - 注意，当前阶段还没对模型做测试
 
+**Figure: GPU 通信测试结果 / GPU Communication Performance Test Results**:
+
+![CUDA P2P Bandwidth and Latency Test](fig/CUDA_P2P.png)
+
+![Peer-to-Peer Communication Matrix](fig/Peer-to-Peer.png)
 ---
 
 ## I. 进展情况 / Current Project Layout

@@ -2,6 +2,8 @@
 
 import argparse
 import time
+import json
+import os
 
 import torch
 import torch.nn as nn
@@ -268,11 +270,16 @@ def build_dummy_input(tokenizer: AutoTokenizer, length: int):
 # ============================
 # Profiling
 # ============================
-def profile_lengths(lengths, keep_ratio: float):
+def profile_lengths(lengths, keep_ratio: float, save_json: bool = True):
     model, tokenizer, pruners = load_model_and_pruners()
     model.eval()
 
     print("Profiling lengths:", lengths)
+    
+    # Store results
+    baseline_results = {}
+    sdtp_results = {}
+    
     for L in lengths:
         # Build new input for each length
         input_ids, attention_mask = build_dummy_input(tokenizer, L)
@@ -299,6 +306,10 @@ def profile_lengths(lengths, keep_ratio: float):
                 f"[Length {L}] baseline={baseline_t:.4f}s  "
                 f"sdtp={sdtp_t:.4f}s  speedup={speedup:.2f}x"
             )
+            
+            # Store results
+            baseline_results[str(L)] = baseline_t
+            sdtp_results[str(L)] = sdtp_t
 
         except torch.cuda.OutOfMemoryError:
             print(f"[Length {L}] OOM on GPU, skipping this length.")
@@ -307,6 +318,21 @@ def profile_lengths(lengths, keep_ratio: float):
             del input_ids, attention_mask
             if device.type == "cuda":
                 torch.cuda.empty_cache()
+    
+    # Save results to JSON
+    if save_json and baseline_results and sdtp_results:
+        os.makedirs("results", exist_ok=True)
+        
+        baseline_path = "results/latency_baseline.json"
+        sdtp_path = "results/latency_sdtp.json"
+        
+        with open(baseline_path, "w") as f:
+            json.dump(baseline_results, f, indent=2)
+        print(f"[OK] Baseline results saved to {baseline_path}")
+        
+        with open(sdtp_path, "w") as f:
+            json.dump(sdtp_results, f, indent=2)
+        print(f"[OK] SDTP results saved to {sdtp_path}")
 
 
 # ============================

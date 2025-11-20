@@ -3,6 +3,8 @@
 
 import argparse
 import time
+import json
+import os
 import torch
 import torch.nn as nn
 import pynvml
@@ -235,11 +237,15 @@ def build_dummy_input(tokenizer, length, device="cuda"):
 # ============================
 # Profiling multi-GPU
 # ============================
-def profile_lengths(lengths, keep_ratio):
+def profile_lengths(lengths, keep_ratio, save_json: bool = True):
     model, tokenizer, pruners = load_model_and_pruners()
     model.eval()
 
     print("Profiling lengths:", lengths)
+    
+    # Store results
+    baseline_results = {}
+    sdtp_results = {}
 
     for L in lengths:
         try:
@@ -261,13 +267,33 @@ def profile_lengths(lengths, keep_ratio):
                 input_ids, attention_mask
             )
 
-            print(f"[Length {L}] baseline={baseline_t:.4f}s  sdtp={sdtp_t:.4f}s  speedup={baseline_t/sdtp_t:.2f}x")
+            speedup = baseline_t / sdtp_t if sdtp_t > 0 else float("inf")
+            print(f"[Length {L}] baseline={baseline_t:.4f}s  sdtp={sdtp_t:.4f}s  speedup={speedup:.2f}x")
+            
+            # Store results
+            baseline_results[str(L)] = baseline_t
+            sdtp_results[str(L)] = sdtp_t
 
         except torch.cuda.OutOfMemoryError:
             print(f"[Length {L}] OOM, skipped.")
         finally:
             del input_ids, attention_mask
             torch.cuda.empty_cache()
+    
+    # Save results to JSON
+    if save_json and baseline_results and sdtp_results:
+        os.makedirs("results", exist_ok=True)
+        
+        baseline_path = "results/latency_baseline.json"
+        sdtp_path = "results/latency_sdtp.json"
+        
+        with open(baseline_path, "w") as f:
+            json.dump(baseline_results, f, indent=2)
+        print(f"[OK] Baseline results saved to {baseline_path}")
+        
+        with open(sdtp_path, "w") as f:
+            json.dump(sdtp_results, f, indent=2)
+        print(f"[OK] SDTP results saved to {sdtp_path}")
 
 
 # ============================
