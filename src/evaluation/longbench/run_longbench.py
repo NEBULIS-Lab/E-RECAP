@@ -17,6 +17,10 @@ def main():
     parser.add_argument("--prediction_path", type=str, default=None)
     parser.add_argument("--max_new_tokens", type=int, default=64)
 
+    # ****** NEW ARGUMENT FOR SDTP ******
+    parser.add_argument("--keep_ratio", type=float, default=1.0,
+                        help="Token keep ratio for SDTP pruning (default=1.0 = no pruning)")
+
     args = parser.parse_args()
 
     print("[LongBench] Starting evaluation...")
@@ -28,6 +32,7 @@ def main():
         pruning_module_path=args.pruning_module,
         mode=args.mode,
         max_new_tokens=args.max_new_tokens,
+        keep_ratio=args.keep_ratio,      # *** NEW LINE ***
     )
 
     model.load_model(real_load=args.do_inference)
