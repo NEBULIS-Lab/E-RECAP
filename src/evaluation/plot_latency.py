@@ -236,6 +236,88 @@ def load_combined_json(path):
     return baseline, sdtp, metadata
 
 
+def plot_multi_config_latency(configs_data, out_path):
+    """
+    Plot latency comparison for multiple configurations in one figure.
+    
+    Args:
+        configs_data: Dict of {config_name: (baseline_dict, sdtp_dict)}
+        out_path: Output file path
+    """
+    plt.figure(figsize=(12, 7))
+    
+    # Plot baseline (only once, as it's the same for all configs)
+    if configs_data:
+        first_config = list(configs_data.keys())[0]
+        baseline, _ = configs_data[first_config]
+        lengths = sorted(baseline.keys())
+        base_vals = [baseline[L] for L in lengths]
+        plt.plot(lengths, base_vals, marker='o', linewidth=2.5, 
+                label="Baseline", markersize=10, color='black', linestyle='--')
+    
+    # Plot SDTP for each configuration
+    colors = ['#1f77b4', '#ff7f0e', '#2ca02c']  # Blue, Orange, Green
+    markers = ['s', '^', 'D']  # Square, Triangle, Diamond
+    
+    for idx, (config_name, (baseline, sdtp)) in enumerate(configs_data.items()):
+        lengths = sorted(set(baseline.keys()) & set(sdtp.keys()))
+        sdtp_vals = [sdtp[L] for L in lengths]
+        color = colors[idx % len(colors)]
+        marker = markers[idx % len(markers)]
+        plt.plot(lengths, sdtp_vals, marker=marker, linewidth=2, 
+                label=f"SDTP ({config_name})", markersize=8, color=color)
+    
+    plt.xlabel("Sequence Length (tokens)", fontsize=12)
+    plt.ylabel("Prefill Latency (seconds)", fontsize=12)
+    plt.title("Prefill Latency Comparison: Multiple Configurations", fontsize=14, fontweight='bold')
+    plt.grid(True, alpha=0.3)
+    plt.legend(fontsize=10, loc='best')
+    plt.tight_layout()
+    
+    os.makedirs(os.path.dirname(out_path), exist_ok=True)
+    plt.savefig(out_path, dpi=300, bbox_inches='tight')
+    plt.close()
+    
+    print(f"[OK] Saved {out_path}")
+
+
+def plot_multi_config_speedup(configs_data, out_path):
+    """
+    Plot speedup comparison for multiple configurations in one figure.
+    
+    Args:
+        configs_data: Dict of {config_name: (baseline_dict, sdtp_dict)}
+        out_path: Output file path
+    """
+    plt.figure(figsize=(12, 7))
+    
+    colors = ['#1f77b4', '#ff7f0e', '#2ca02c']  # Blue, Orange, Green
+    markers = ['s', '^', 'D']  # Square, Triangle, Diamond
+    
+    for idx, (config_name, (baseline, sdtp)) in enumerate(configs_data.items()):
+        lengths = sorted(set(baseline.keys()) & set(sdtp.keys()))
+        speedups = [baseline[L] / sdtp[L] if sdtp[L] > 0 else 0 for L in lengths]
+        color = colors[idx % len(colors)]
+        marker = markers[idx % len(markers)]
+        plt.plot(lengths, speedups, marker=marker, linewidth=2, 
+                label=f"{config_name} (avg: {np.mean(speedups):.2f}x)", 
+                markersize=8, color=color)
+    
+    plt.axhline(y=1.0, color='r', linestyle='--', alpha=0.5, label='Baseline (1x)')
+    plt.xlabel("Sequence Length (tokens)", fontsize=12)
+    plt.ylabel("Speedup (Baseline / SDTP)", fontsize=12)
+    plt.title("Speedup Comparison: Multiple Configurations", fontsize=14, fontweight='bold')
+    plt.grid(True, alpha=0.3)
+    plt.legend(fontsize=10, loc='best')
+    plt.tight_layout()
+    
+    os.makedirs(os.path.dirname(out_path), exist_ok=True)
+    plt.savefig(out_path, dpi=300, bbox_inches='tight')
+    plt.close()
+    
+    print(f"[OK] Saved {out_path}")
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="Generate latency curves for SDTP evaluation"
@@ -275,6 +357,18 @@ def main():
         type=str,
         default="",
         help="Prefix for output filenames (e.g., 'singlegpu_' or 'multigpu_')"
+    )
+    parser.add_argument(
+        "--multi_config",
+        action="store_true",
+        help="Plot multiple configurations in one figure (requires --combined files)"
+    )
+    parser.add_argument(
+        "--config_files",
+        type=str,
+        nargs="+",
+        default=None,
+        help="List of combined JSON files for multi-config plotting"
     )
     
     args = parser.parse_args()
@@ -334,6 +428,350 @@ def main():
     print("[OK] All plots generated successfully!")
 
 
+def plot_multi_config_flops(configs_data, keep_ratios, out_path):
+    """
+    Plot FLOPs comparison for multiple configurations in one figure.
+    
+    Args:
+        configs_data: Dict of {config_name: (baseline_dict, sdtp_dict)}
+        keep_ratios: Dict of {config_name: keep_ratio}
+        out_path: Output file path
+    """
+    plt.figure(figsize=(12, 7))
+    
+    # Get common lengths from first config
+    if not configs_data:
+        return
+    first_config = list(configs_data.keys())[0]
+    baseline, _ = configs_data[first_config]
+    lengths = sorted(baseline.keys())
+    
+    # Plot baseline FLOPs (only once)
+    base_flops = [estimate_flops(L) for L in lengths]
+    if base_flops[0] > 0:
+        base_flops_norm = [f / base_flops[0] for f in base_flops]
+    else:
+        base_flops_norm = base_flops
+    plt.plot(lengths, base_flops_norm, marker='o', linewidth=2.5, 
+            label="Baseline FLOPs", markersize=10, color='black', linestyle='--')
+    
+    # Plot SDTP FLOPs for each configuration
+    colors = ['#1f77b4', '#ff7f0e', '#2ca02c']  # Blue, Orange, Green
+    markers = ['s', '^', 'D']  # Square, Triangle, Diamond
+    
+    for idx, (config_name, (baseline, sdtp)) in enumerate(configs_data.items()):
+        keep_ratio = keep_ratios.get(config_name, 0.7)
+        sdtp_flops = [estimate_flops(int(L * keep_ratio)) for L in lengths]
+        if base_flops[0] > 0:
+            sdtp_flops_norm = [f / base_flops[0] for f in sdtp_flops]
+        else:
+            sdtp_flops_norm = sdtp_flops
+        
+        color = colors[idx % len(colors)]
+        marker = markers[idx % len(markers)]
+        plt.plot(lengths, sdtp_flops_norm, marker=marker, linewidth=2, 
+                label=f"SDTP {config_name} (keep_ratio={keep_ratio})", 
+                markersize=8, color=color)
+    
+    plt.xlabel("Sequence Length (tokens)", fontsize=12)
+    plt.ylabel("Relative FLOPs (normalized)", fontsize=12)
+    plt.title("FLOPs Comparison: Multiple Configurations", fontsize=14, fontweight='bold')
+    plt.grid(True, alpha=0.3)
+    plt.legend(fontsize=10, loc='best')
+    plt.tight_layout()
+    
+    os.makedirs(os.path.dirname(out_path), exist_ok=True)
+    plt.savefig(out_path, dpi=300, bbox_inches='tight')
+    plt.close()
+    
+    print(f"[OK] Saved {out_path}")
+
+
+def plot_comprehensive_singlegpu(out_dir="results/fig"):
+    """
+    Plot comprehensive single-GPU comparison with multiple subplots.
+    Shows latency, speedup, and FLOPs reduction in one figure.
+    """
+    config_files = [
+        ("keep09", "results/latency_results_keep09.json"),
+        ("keep08", "results/latency_results_keep08.json"),
+        ("keep07", "results/latency_results_keep07.json"),
+    ]
+    
+    configs_data = {}
+    keep_ratios = {}
+    metadata_dict = {}
+    
+    for config_name, config_file in config_files:
+        if os.path.exists(config_file):
+            baseline, sdtp, metadata = load_combined_json(config_file)
+            if baseline and sdtp:
+                final_name = metadata.get("config_name", config_name) if metadata else config_name
+                configs_data[final_name] = (baseline, sdtp)
+                if metadata:
+                    keep_ratios[final_name] = metadata.get("pruning_config", {}).get("keep_ratio", 0.7)
+                    metadata_dict[final_name] = metadata
+                print(f"[Loaded] {final_name}: {len(baseline)} data points")
+    
+    if not configs_data:
+        print("[Warning] No single-GPU configuration files found")
+        return
+    
+    # Get common lengths
+    first_config = list(configs_data.keys())[0]
+    baseline, _ = configs_data[first_config]
+    lengths = sorted(baseline.keys())
+    
+    # Create comprehensive figure with subplots
+    fig, axes = plt.subplots(2, 2, figsize=(16, 12))
+    fig.suptitle("Single-GPU SDTP Performance: Comprehensive Comparison", fontsize=16, fontweight='bold', y=0.995)
+    
+    colors = ['#1f77b4', '#ff7f0e', '#2ca02c']  # Blue, Orange, Green
+    markers = ['s', '^', 'D']  # Square, Triangle, Diamond
+    
+    # Subplot 1: Latency Comparison (Line plot)
+    ax1 = axes[0, 0]
+    base_vals = [baseline[L] for L in lengths]
+    ax1.plot(lengths, base_vals, marker='o', linewidth=2.5, label="Baseline", 
+            markersize=10, color='black', linestyle='--', zorder=1)
+    
+    for idx, (config_name, (baseline_dict, sdtp_dict)) in enumerate(configs_data.items()):
+        sdtp_vals = [sdtp_dict[L] for L in lengths]
+        color = colors[idx % len(colors)]
+        marker = markers[idx % len(markers)]
+        ax1.plot(lengths, sdtp_vals, marker=marker, linewidth=2, 
+                label=f"SDTP ({config_name})", markersize=8, color=color, zorder=2)
+    
+    ax1.set_xlabel("Sequence Length (tokens)", fontsize=11)
+    ax1.set_ylabel("Prefill Latency (seconds)", fontsize=11)
+    ax1.set_title("(a) Latency Comparison", fontsize=12, fontweight='bold')
+    ax1.grid(True, alpha=0.3)
+    ax1.legend(fontsize=9, loc='best')
+    
+    # Subplot 2: Speedup Comparison (Line plot)
+    ax2 = axes[0, 1]
+    for idx, (config_name, (baseline_dict, sdtp_dict)) in enumerate(configs_data.items()):
+        speedups = [baseline_dict[L] / sdtp_dict[L] if sdtp_dict[L] > 0 else 0 for L in lengths]
+        color = colors[idx % len(colors)]
+        marker = markers[idx % len(markers)]
+        avg_speedup = np.mean(speedups)
+        ax2.plot(lengths, speedups, marker=marker, linewidth=2, 
+                label=f"{config_name} (avg: {avg_speedup:.2f}x)", 
+                markersize=8, color=color, zorder=2)
+    
+    ax2.axhline(y=1.0, color='r', linestyle='--', alpha=0.5, linewidth=1.5, label='Baseline (1x)', zorder=1)
+    ax2.set_xlabel("Sequence Length (tokens)", fontsize=11)
+    ax2.set_ylabel("Speedup (Baseline / SDTP)", fontsize=11)
+    ax2.set_title("(b) Speedup vs Sequence Length", fontsize=12, fontweight='bold')
+    ax2.grid(True, alpha=0.3)
+    ax2.legend(fontsize=9, loc='best')
+    
+    # Subplot 3: Average Speedup by Configuration (Bar chart)
+    ax3 = axes[1, 0]
+    config_names = []
+    avg_speedups = []
+    bar_colors = []
+    
+    for idx, (config_name, (baseline_dict, sdtp_dict)) in enumerate(configs_data.items()):
+        speedups = [baseline_dict[L] / sdtp_dict[L] if sdtp_dict[L] > 0 else 0 for L in lengths]
+        avg_speedup = np.mean(speedups)
+        config_names.append(config_name)
+        avg_speedups.append(avg_speedup)
+        bar_colors.append(colors[idx % len(colors)])
+    
+    bars = ax3.bar(config_names, avg_speedups, color=bar_colors, alpha=0.7, edgecolor='black', linewidth=1.5)
+    ax3.axhline(y=1.0, color='r', linestyle='--', alpha=0.5, linewidth=1.5, label='Baseline (1x)')
+    ax3.set_ylabel("Average Speedup", fontsize=11)
+    ax3.set_title("(c) Average Speedup by Configuration", fontsize=12, fontweight='bold')
+    ax3.grid(True, alpha=0.3, axis='y')
+    ax3.legend(fontsize=9)
+    
+    # Add value labels on bars
+    for bar, speedup in zip(bars, avg_speedups):
+        height = bar.get_height()
+        ax3.text(bar.get_x() + bar.get_width()/2., height,
+                f'{speedup:.2f}x', ha='center', va='bottom', fontsize=10, fontweight='bold')
+    
+    # Subplot 4: FLOPs Reduction (Bar chart)
+    ax4 = axes[1, 1]
+    config_names_flops = []
+    flops_reductions = []
+    bar_colors_flops = []
+    
+    for idx, (config_name, (baseline_dict, sdtp_dict)) in enumerate(configs_data.items()):
+        keep_ratio = keep_ratios.get(config_name, 0.7)
+        # Calculate average FLOPs reduction across all lengths
+        reductions = []
+        for L in lengths:
+            base_flops = estimate_flops(L)
+            sdtp_flops = estimate_flops(int(L * keep_ratio))
+            reduction = (1 - sdtp_flops / base_flops) * 100 if base_flops > 0 else 0
+            reductions.append(reduction)
+        avg_reduction = np.mean(reductions)
+        
+        config_names_flops.append(config_name)
+        flops_reductions.append(avg_reduction)
+        bar_colors_flops.append(colors[idx % len(colors)])
+    
+    bars_flops = ax4.bar(config_names_flops, flops_reductions, color=bar_colors_flops, 
+                         alpha=0.7, edgecolor='black', linewidth=1.5)
+    ax4.set_ylabel("FLOPs Reduction (%)", fontsize=11)
+    ax4.set_title("(d) Average FLOPs Reduction by Configuration", fontsize=12, fontweight='bold')
+    ax4.grid(True, alpha=0.3, axis='y')
+    
+    # Add value labels on bars
+    for bar, reduction in zip(bars_flops, flops_reductions):
+        height = bar.get_height()
+        ax4.text(bar.get_x() + bar.get_width()/2., height,
+                f'{reduction:.1f}%', ha='center', va='bottom', fontsize=10, fontweight='bold')
+    
+    plt.tight_layout(rect=[0, 0, 1, 0.99])
+    
+    out_path = os.path.join(out_dir, "singlegpu_comprehensive.png")
+    os.makedirs(out_dir, exist_ok=True)
+    plt.savefig(out_path, dpi=300, bbox_inches='tight')
+    plt.close()
+    
+    print(f"[OK] Saved comprehensive single-GPU plot: {out_path}")
+
+
+def plot_comprehensive_multigpu(out_dir="results/fig"):
+    """
+    Plot comprehensive multi-GPU comparison with multiple subplots.
+    """
+    baseline_file = "results/latency_baseline_multigpu.json"
+    sdtp_file = "results/latency_sdtp_multigpu.json"
+    
+    if not (os.path.exists(baseline_file) and os.path.exists(sdtp_file)):
+        print("[Warning] Multi-GPU result files not found")
+        return False
+    
+    baseline, _ = load_json(baseline_file)
+    sdtp, _ = load_json(sdtp_file)
+    
+    if not baseline or not sdtp:
+        print("[Warning] Multi-GPU data is empty")
+        return False
+    
+    lengths = sorted(set(baseline.keys()) & set(sdtp.keys()))
+    if not lengths:
+        print("[Warning] No common sequence lengths in multi-GPU data")
+        return False
+    
+    # Create comprehensive figure with subplots
+    fig, axes = plt.subplots(2, 2, figsize=(16, 12))
+    fig.suptitle("Multi-GPU SDTP Performance: Comprehensive Analysis", fontsize=16, fontweight='bold', y=0.995)
+    
+    base_vals = [baseline[L] for L in lengths]
+    sdtp_vals = [sdtp[L] for L in lengths]
+    speedups = [baseline[L] / sdtp[L] if sdtp[L] > 0 else 0 for L in lengths]
+    avg_speedup = np.mean(speedups)
+    
+    # Subplot 1: Latency Comparison (Line plot)
+    ax1 = axes[0, 0]
+    ax1.plot(lengths, base_vals, marker='o', linewidth=2.5, label="Baseline", 
+            markersize=10, color='black', linestyle='--', zorder=1)
+    ax1.plot(lengths, sdtp_vals, marker='s', linewidth=2, label="SDTP", 
+            markersize=10, color='#2ca02c', zorder=2)
+    ax1.set_xlabel("Sequence Length (tokens)", fontsize=11)
+    ax1.set_ylabel("Prefill Latency (seconds)", fontsize=11)
+    ax1.set_title("(a) Latency Comparison", fontsize=12, fontweight='bold')
+    ax1.grid(True, alpha=0.3)
+    ax1.legend(fontsize=10, loc='best')
+    
+    # Subplot 2: Speedup vs Sequence Length (Line plot)
+    ax2 = axes[0, 1]
+    ax2.plot(lengths, speedups, marker='o', linewidth=2.5, label=f"Speedup (avg: {avg_speedup:.2f}x)", 
+            markersize=10, color='#1f77b4', zorder=2)
+    ax2.axhline(y=1.0, color='r', linestyle='--', alpha=0.5, linewidth=1.5, label='Baseline (1x)', zorder=1)
+    ax2.set_xlabel("Sequence Length (tokens)", fontsize=11)
+    ax2.set_ylabel("Speedup (Baseline / SDTP)", fontsize=11)
+    ax2.set_title("(b) Speedup vs Sequence Length", fontsize=12, fontweight='bold')
+    ax2.grid(True, alpha=0.3)
+    ax2.legend(fontsize=10, loc='best')
+    
+    # Subplot 3: Speedup by Length (Bar chart)
+    ax3 = axes[1, 0]
+    bars = ax3.bar(range(len(lengths)), speedups, color='#1f77b4', alpha=0.7, 
+                   edgecolor='black', linewidth=1.5)
+    ax3.axhline(y=1.0, color='r', linestyle='--', alpha=0.5, linewidth=1.5, label='Baseline (1x)')
+    ax3.set_xticks(range(len(lengths)))
+    ax3.set_xticklabels([str(L) for L in lengths], rotation=45, ha='right')
+    ax3.set_ylabel("Speedup", fontsize=11)
+    ax3.set_xlabel("Sequence Length (tokens)", fontsize=11)
+    ax3.set_title("(c) Speedup by Sequence Length", fontsize=12, fontweight='bold')
+    ax3.grid(True, alpha=0.3, axis='y')
+    ax3.legend(fontsize=9)
+    
+    # Add value labels on bars
+    for bar, speedup in zip(bars, speedups):
+        height = bar.get_height()
+        ax3.text(bar.get_x() + bar.get_width()/2., height,
+                f'{speedup:.2f}x', ha='center', va='bottom', fontsize=9, fontweight='bold')
+    
+    # Subplot 4: Latency Reduction Percentage (Bar chart)
+    ax4 = axes[1, 1]
+    latency_reductions = [(1 - sdtp[L] / baseline[L]) * 100 if baseline[L] > 0 else 0 for L in lengths]
+    avg_reduction = np.mean(latency_reductions)
+    
+    bars_reduction = ax4.bar(range(len(lengths)), latency_reductions, color='#ff7f0e', alpha=0.7,
+                            edgecolor='black', linewidth=1.5)
+    ax4.axhline(y=avg_reduction, color='r', linestyle='--', alpha=0.7, linewidth=1.5, 
+               label=f'Average ({avg_reduction:.1f}%)')
+    ax4.set_xticks(range(len(lengths)))
+    ax4.set_xticklabels([str(L) for L in lengths], rotation=45, ha='right')
+    ax4.set_ylabel("Latency Reduction (%)", fontsize=11)
+    ax4.set_xlabel("Sequence Length (tokens)", fontsize=11)
+    ax4.set_title("(d) Latency Reduction by Sequence Length", fontsize=12, fontweight='bold')
+    ax4.grid(True, alpha=0.3, axis='y')
+    ax4.legend(fontsize=9)
+    
+    # Add value labels on bars
+    for bar, reduction in zip(bars_reduction, latency_reductions):
+        height = bar.get_height()
+        ax4.text(bar.get_x() + bar.get_width()/2., height,
+                f'{reduction:.1f}%', ha='center', va='bottom', fontsize=9, fontweight='bold')
+    
+    plt.tight_layout(rect=[0, 0, 1, 0.99])
+    
+    out_path = os.path.join(out_dir, "multigpu_comprehensive.png")
+    os.makedirs(out_dir, exist_ok=True)
+    plt.savefig(out_path, dpi=300, bbox_inches='tight')
+    plt.close()
+    
+    print(f"[OK] Saved comprehensive multi-GPU plot: {out_path}")
+    return True
+
+
+def plot_all_singlegpu_configs(out_dir="results/fig"):
+    """
+    Plot all single-GPU configurations (keep09, keep08, keep07) in one comprehensive figure.
+    """
+    plot_comprehensive_singlegpu(out_dir)
+
+
+def plot_multigpu_results(out_dir="results/fig"):
+    """
+    Plot multi-GPU results in comprehensive figure.
+    """
+    return plot_comprehensive_multigpu(out_dir)
+
+
 if __name__ == "__main__":
-    main()
+    import sys
+    
+    # Check if called with special mode for multi-config plotting
+    if len(sys.argv) > 1 and sys.argv[1] == "--plot-all-singlegpu":
+        out_dir = sys.argv[2] if len(sys.argv) > 2 else "results/fig"
+        plot_all_singlegpu_configs(out_dir)
+    elif len(sys.argv) > 1 and sys.argv[1] == "--plot-multigpu":
+        out_dir = sys.argv[2] if len(sys.argv) > 2 else "results/fig"
+        plot_multigpu_results(out_dir)
+    elif len(sys.argv) > 1 and sys.argv[1] == "--plot-comprehensive":
+        # Plot both single-GPU and multi-GPU comprehensive figures
+        out_dir = sys.argv[2] if len(sys.argv) > 2 else "results/fig"
+        plot_all_singlegpu_configs(out_dir)
+        plot_multigpu_results(out_dir)
+    else:
+        main()
 
