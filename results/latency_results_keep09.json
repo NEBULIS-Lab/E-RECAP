@@ -1,0 +1,92 @@
+{
+  "metadata": {
+    "config_name": "keep09",
+    "model": "qwen2-7b-instruct",
+    "hardware": {
+      "gpu_count": 8,
+      "gpu_model": "NVIDIA RTX 5880 Ada Generation",
+      "gpu_memory_gb": 47.37200927734375,
+      "cuda_version": "12.8"
+    },
+    "pruning_config": {
+      "prune_layers": [
+        4,
+        7,
+        10,
+        13,
+        16,
+        19,
+        22,
+        25
+      ],
+      "keep_ratio": 0.9,
+      "min_head_tokens": 4,
+      "min_tail_ratio": 0.1,
+      "cumulative_keep_ratio": 0.4304672100000001
+    },
+    "run_info": {
+      "timestamp": "2025-11-20T14:16:45",
+      "script": "inference_sdtp.py",
+      "mode": "profile"
+    }
+  },
+  "results": {
+    "1024": {
+      "baseline": {
+        "latency_seconds": 0.16347385933234668,
+        "memory_gb": 15.216641902923584
+      },
+      "sdtp": {
+        "latency_seconds": 0.1163383403327316,
+        "memory_gb": 18.995893955230713,
+        "tokens_kept": 438,
+        "tokens_pruned": 586,
+        "pruning_ratio": 0.572265625,
+        "pruning_steps": 8
+      },
+      "speedup": 1.4051589430002687,
+      "memory_reduction": -0.24836308013406155
+    },
+    "2048": {
+      "baseline": {
+        "latency_seconds": 0.33279863066854887,
+        "memory_gb": 20.864822387695312
+      },
+      "sdtp": {
+        "latency_seconds": 0.24111917365614013,
+        "memory_gb": 28.393400192260742,
+        "tokens_kept": 879,
+        "tokens_pruned": 1169,
+        "pruning_ratio": 0.57080078125,
+        "pruning_steps": 8
+      },
+      "speedup": 1.380224664933336,
+      "memory_reduction": -0.3608263547455494
+    },
+    "4096": {
+      "baseline": {
+        "latency_seconds": 0.7492831603352291,
+        "memory_gb": 27.40739393234253
+      },
+      "sdtp": {
+        "latency_seconds": 0.49980978566842776,
+        "memory_gb": 42.43201780319214,
+        "tokens_kept": 1761,
+        "tokens_pruned": 2335,
+        "pruning_ratio": 0.570068359375,
+        "pruning_steps": 8
+      },
+      "speedup": 1.4991366352164646,
+      "memory_reduction": -0.5481960053531235
+    }
+  },
+  "summary": {
+    "tested_lengths": [
+      1024,
+      2048,
+      4096
+    ],
+    "avg_speedup": 1.4281734143833564,
+    "avg_memory_reduction": -0.3857951467442448
+  }
+}

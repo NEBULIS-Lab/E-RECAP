@@ -1,0 +1,92 @@
+{
+  "metadata": {
+    "config_name": "keep08",
+    "model": "qwen2-7b-instruct",
+    "hardware": {
+      "gpu_count": 8,
+      "gpu_model": "NVIDIA RTX 5880 Ada Generation",
+      "gpu_memory_gb": 47.37200927734375,
+      "cuda_version": "12.8"
+    },
+    "pruning_config": {
+      "prune_layers": [
+        4,
+        7,
+        10,
+        13,
+        16,
+        19,
+        22,
+        25
+      ],
+      "keep_ratio": 0.8,
+      "min_head_tokens": 4,
+      "min_tail_ratio": 0.1,
+      "cumulative_keep_ratio": 0.1677721600000001
+    },
+    "run_info": {
+      "timestamp": "2025-11-20T14:17:17",
+      "script": "inference_sdtp.py",
+      "mode": "profile"
+    }
+  },
+  "results": {
+    "1024": {
+      "baseline": {
+        "latency_seconds": 0.16975336099858396,
+        "memory_gb": 15.216641902923584
+      },
+      "sdtp": {
+        "latency_seconds": 0.08943755001140137,
+        "memory_gb": 17.761535167694092,
+        "tokens_kept": 171,
+        "tokens_pruned": 853,
+        "pruning_ratio": 0.8330078125,
+        "pruning_steps": 8
+      },
+      "speedup": 1.8980099631188918,
+      "memory_reduction": -0.1672440792788556
+    },
+    "2048": {
+      "baseline": {
+        "latency_seconds": 0.3457154170027934,
+        "memory_gb": 19.613100051879883
+      },
+      "sdtp": {
+        "latency_seconds": 0.18404268899272816,
+        "memory_gb": 24.645212650299072,
+        "tokens_kept": 342,
+        "tokens_pruned": 1706,
+        "pruning_ratio": 0.8330078125,
+        "pruning_steps": 8
+      },
+      "speedup": 1.8784523248106488,
+      "memory_reduction": -0.2565689557035054
+    },
+    "4096": {
+      "baseline": {
+        "latency_seconds": 0.7871779850005017,
+        "memory_gb": 24.89703369140625
+      },
+      "sdtp": {
+        "latency_seconds": 0.37595753033140983,
+        "memory_gb": 34.87968111038208,
+        "tokens_kept": 685,
+        "tokens_pruned": 3411,
+        "pruning_ratio": 0.832763671875,
+        "pruning_steps": 8
+      },
+      "speedup": 2.093794967496987,
+      "memory_reduction": -0.400957300484417
+    }
+  },
+  "summary": {
+    "tested_lengths": [
+      1024,
+      2048,
+      4096
+    ],
+    "avg_speedup": 1.9567524184755092,
+    "avg_memory_reduction": -0.2749234451555927
+  }
+}
