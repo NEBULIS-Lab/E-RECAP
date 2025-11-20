@@ -11,7 +11,7 @@ if [ "$MODE" = "profile" ]; then
   echo "[Multi-GPU Inference] Profiling baseline vs SDTP (device_map=auto)"
   python3 -u src/inference_sdtp_multigpu.py \
     --mode profile \
-    --lengths 4096 8192 16384 32768 \
+    --lengths 1024 2048 4096 8192 16384 32768 \
     "$@"
 
 elif [ "$MODE" = "generate" ]; then

@@ -17,6 +17,15 @@ if [ -f "results/latency_results_keep09.json" ]; then
     echo ""
 fi
 
+if [ -f "results/latency_results_keep08.json" ]; then
+    echo "[Single-GPU keep08 Config] Generating curves..."
+    python3 src/evaluation/plot_latency.py \
+        --combined "results/latency_results_keep08.json" \
+        --out_dir "$OUT_DIR" \
+        --prefix "singlegpu_keep08"
+    echo ""
+fi
+
 if [ -f "results/latency_results_keep07.json" ]; then
     echo "[Single-GPU keep07 Config] Generating curves..."
     python3 src/evaluation/plot_latency.py \
@@ -28,7 +37,7 @@ fi
 
 # Fallback to old format (backward compatibility)
 if [ -f "results/latency_baseline.json" ] && [ -f "results/latency_sdtp.json" ]; then
-    if [ ! -f "results/latency_results_keep07.json" ] && [ ! -f "results/latency_results_keep09.json" ]; then
+    if [ ! -f "results/latency_results_keep07.json" ] && [ ! -f "results/latency_results_keep08.json" ] && [ ! -f "results/latency_results_keep09.json" ]; then
         echo "[Single-GPU] Generating curves (old format)..."
         python3 src/evaluation/plot_latency.py \
             --baseline "results/latency_baseline.json" \

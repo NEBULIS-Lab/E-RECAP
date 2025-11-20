@@ -18,7 +18,17 @@ if [ "$MODE" = "profile" ]; then
   python3 -u src/inference_sdtp.py \
     --mode profile \
     --config keep09 \
-    --lengths 4096 8192 16384 32768 \
+    --lengths 1024 2048 4096 8192 16384 32768 \
+    "${@:2}"
+  echo ""
+  
+  # Run keep08 configuration
+  echo "[Config: keep08] Profiling baseline vs SDTP (keep_ratio=0.8)"
+  echo "----------------------------------------"
+  python3 -u src/inference_sdtp.py \
+    --mode profile \
+    --config keep08 \
+    --lengths 1024 2048 4096 8192 16384 32768 \
     "${@:2}"
   echo ""
   
@@ -28,7 +38,7 @@ if [ "$MODE" = "profile" ]; then
   python3 -u src/inference_sdtp.py \
     --mode profile \
     --config keep07 \
-    --lengths 4096 8192 16384 32768 \
+    --lengths 1024 2048 4096 8192 16384 32768 \
     "${@:2}"
   echo ""
   
@@ -50,7 +60,7 @@ else
   echo "Unknown mode: $MODE"
   echo "Usage: $0 [profile|generate] [extra-args...]"
   echo ""
-  echo "  profile (default): Run both keep09 and keep07 configurations"
+  echo "  profile (default): Run keep09, keep08, and keep07 configurations"
   echo "  generate: Generate text with the model"
   echo ""
   echo "Examples:"

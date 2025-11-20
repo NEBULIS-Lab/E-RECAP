@@ -20,7 +20,7 @@ PRUNING_CKPT = "checkpoints/pruning_module.pt"
 PRUNE_LAYERS = [4, 7, 10, 13, 16, 19, 22, 25]
 KEEP_RATIO = 0.7
 MIN_HEAD_TOKENS = 4
-MIN_TAIL_TOKENS = 16
+MIN_TAIL_RATIO = 0.1  # Keep 10% of tokens at tail (as in paper)
 MAX_NEW_TOKENS = 128
 
 
@@ -43,7 +43,7 @@ class TokenPruningModule(nn.Module):
         super().__init__()
         self.scorer = nn.Sequential(
             nn.Linear(hidden_size, hidden_size // 4),
-            nn.ReLU(),
+            nn.GELU(),  # Use GELU as in paper (was ReLU)
             nn.Linear(hidden_size // 4, 1),
         )
 
@@ -113,9 +113,10 @@ def apply_token_pruning(hidden_states, pruning_module, keep_ratio):
     # scores: [seq]
     scores = pruning_module(hs_flat)
 
-    # mandatory keep: head + tail
+    # mandatory keep: head + tail (10% of sequence, as in paper)
     base_keep = set(range(min(MIN_HEAD_TOKENS, seq_len)))
-    for i in range(max(0, seq_len - MIN_TAIL_TOKENS), seq_len):
+    min_tail_tokens = max(16, int(seq_len * MIN_TAIL_RATIO))  # At least 16, or 10% of sequence
+    for i in range(max(0, seq_len - min_tail_tokens), seq_len):
         base_keep.add(i)
 
     target_keep = max(int(seq_len * keep_ratio), len(base_keep))
@@ -262,10 +263,10 @@ def profile_lengths(lengths, keep_ratio, save_json: bool = True):
 
             # Test baseline
             try:
-                baseline_t = measure_latency(
-                    lambda x, m: baseline_prefill(model, x, m),
-                    input_ids, attention_mask
-                )
+            baseline_t = measure_latency(
+                lambda x, m: baseline_prefill(model, x, m),
+                input_ids, attention_mask
+            )
                 baseline_results[str(L)] = baseline_t
                 print(f"[Length {L}] baseline={baseline_t:.4f}s")
             except Exception as e:
@@ -273,10 +274,10 @@ def profile_lengths(lengths, keep_ratio, save_json: bool = True):
             
             # Test SDTP
             try:
-                sdtp_t = measure_latency(
-                    lambda x, m: prefill_with_pruning(model, x, m, pruners, keep_ratio),
-                    input_ids, attention_mask
-                )
+            sdtp_t = measure_latency(
+                lambda x, m: prefill_with_pruning(model, x, m, pruners, keep_ratio),
+                input_ids, attention_mask
+            )
                 sdtp_results[str(L)] = sdtp_t
                 print(f"[Length {L}] sdtp={sdtp_t:.4f}s")
                 
@@ -296,7 +297,7 @@ def profile_lengths(lengths, keep_ratio, save_json: bool = True):
             traceback.print_exc()
         finally:
             if input_ids is not None:
-                del input_ids, attention_mask
+            del input_ids, attention_mask
             torch.cuda.empty_cache()
     
     # Save results to JSON
@@ -308,17 +309,17 @@ def profile_lengths(lengths, keep_ratio, save_json: bool = True):
         
         # Save baseline results if available
         if baseline_results:
-            with open(baseline_path, "w") as f:
-                json.dump(baseline_results, f, indent=2)
-            print(f"[OK] Baseline results saved to {baseline_path}")
+        with open(baseline_path, "w") as f:
+            json.dump(baseline_results, f, indent=2)
+        print(f"[OK] Baseline results saved to {baseline_path}")
         else:
             print(f"[Warning] No baseline results to save")
         
         # Save SDTP results if available
         if sdtp_results:
-            with open(sdtp_path, "w") as f:
-                json.dump(sdtp_results, f, indent=2)
-            print(f"[OK] SDTP results saved to {sdtp_path}")
+        with open(sdtp_path, "w") as f:
+            json.dump(sdtp_results, f, indent=2)
+        print(f"[OK] SDTP results saved to {sdtp_path}")
         else:
             print(f"[Warning] No SDTP results to save (all tests may have failed)")
 
@@ -346,7 +347,7 @@ def parse_args():
     p = argparse.ArgumentParser()
     p.add_argument("--mode", choices=["profile", "generate"], default="profile")
     p.add_argument("--prompt", type=str, default="Hello SDTP multi GPU!")
-    p.add_argument("--lengths", type=int, nargs="+", default=[4096, 8192, 16384, 32768])
+    p.add_argument("--lengths", type=int, nargs="+", default=[1024, 2048, 4096, 8192, 16384, 32768])
     p.add_argument("--keep_ratio", type=float, default=KEEP_RATIO)
     return p.parse_args()
 

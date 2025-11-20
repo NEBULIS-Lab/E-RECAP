@@ -39,7 +39,7 @@ class TokenPruningModule(nn.Module):
         super().__init__()
         self.scorer = nn.Sequential(
             nn.Linear(hidden_size, hidden_size // 4),
-            nn.ReLU(),
+            nn.GELU(),  # Use GELU as in paper (was ReLU)
             nn.Linear(hidden_size // 4, 1),
         )
 
@@ -49,13 +49,18 @@ class TokenPruningModule(nn.Module):
 
 
 # =======================
-# Ranking loss
+# Ranking loss (logistic loss form as in paper)
 # =======================
 def ranking_loss(pred: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
-    diff_pred = pred.unsqueeze(1) - pred.unsqueeze(0)
-    diff_target = target.unsqueeze(1) - target.unsqueeze(0)
-    margin = 1.0
-    loss = F.relu(margin - diff_pred * torch.sign(diff_target))
+    """
+    Logistic ranking loss as in the paper:
+    L_r = sum_{i<j} log(1 + exp(-(π_i - π_j) * sign(π̂_i - π̂_j)))
+    """
+    diff_pred = pred.unsqueeze(1) - pred.unsqueeze(0)  # [N, N]
+    diff_target = target.unsqueeze(1) - target.unsqueeze(0)  # [N, N]
+    sign_target = torch.sign(diff_target)
+    # Logistic loss: log(1 + exp(-diff_pred * sign_target))
+    loss = torch.log(1 + torch.exp(-diff_pred * sign_target))
     return loss.mean()
 
 

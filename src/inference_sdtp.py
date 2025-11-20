@@ -27,15 +27,23 @@ KEEP09_CONFIG = {
     "prune_layers": [4, 7, 10, 13, 16, 19, 22, 25],  # 8 layers
     "keep_ratio": 0.9,  # Keep 90% tokens per layer
     "min_head_tokens": 4,
-    "min_tail_tokens": 16,
+    "min_tail_ratio": 0.1,  # Keep 10% of tokens at tail (as in paper)
     "cumulative_keep_ratio": 0.9 ** 8,  # ~0.43
+}
+
+KEEP08_CONFIG = {
+    "prune_layers": [4, 7, 10, 13, 16, 19, 22, 25],  # 8 layers
+    "keep_ratio": 0.8,  # Keep 80% tokens per layer
+    "min_head_tokens": 4,
+    "min_tail_ratio": 0.1,  # Keep 10% of tokens at tail (as in paper)
+    "cumulative_keep_ratio": 0.8 ** 8,  # ~0.17
 }
 
 KEEP07_CONFIG = {
     "prune_layers": [4, 7, 10, 13, 16, 19, 22, 25],  # 8 layers
     "keep_ratio": 0.7,  # Keep 70% tokens per layer
     "min_head_tokens": 4,
-    "min_tail_tokens": 16,
+    "min_tail_ratio": 0.1,  # Keep 10% of tokens at tail (as in paper)
     "cumulative_keep_ratio": 0.7 ** 8,  # ~0.058
 }
 
@@ -43,7 +51,7 @@ KEEP07_CONFIG = {
 PRUNE_LAYERS = KEEP07_CONFIG["prune_layers"]
 KEEP_RATIO = KEEP07_CONFIG["keep_ratio"]
 MIN_HEAD_TOKENS = KEEP07_CONFIG["min_head_tokens"]
-MIN_TAIL_TOKENS = KEEP07_CONFIG["min_tail_tokens"]
+MIN_TAIL_RATIO = KEEP07_CONFIG["min_tail_ratio"]
 
 
 # ============================
@@ -56,7 +64,7 @@ class TokenPruningModule(nn.Module):
         super().__init__()
         self.scorer = nn.Sequential(
             nn.Linear(hidden_size, hidden_size // 4),
-            nn.ReLU(),
+            nn.GELU(),  # Use GELU as in paper (was ReLU)
             nn.Linear(hidden_size // 4, 1),
         )
 
@@ -125,14 +133,14 @@ def apply_token_pruning(
     pruning_module: nn.Module,
     keep_ratio: float,
     min_head_tokens: int = None,
-    min_tail_tokens: int = None,
+    min_tail_ratio: float = None,
 ) -> tuple[torch.Tensor, torch.Tensor, dict]:
     """
     hidden_states: [1, seq_len, hidden]
     pruning_module: TokenPruningModule
     keep_ratio: fraction of tokens to keep
     min_head_tokens: minimum tokens to keep at head (default: MIN_HEAD_TOKENS)
-    min_tail_tokens: minimum tokens to keep at tail (default: MIN_TAIL_TOKENS)
+    min_tail_ratio: ratio of tokens to keep at tail (default: MIN_TAIL_RATIO, as in paper: 10%)
 
     Returns:
         pruned_hidden_states: [1, kept_len, hidden]
@@ -141,8 +149,8 @@ def apply_token_pruning(
     """
     if min_head_tokens is None:
         min_head_tokens = MIN_HEAD_TOKENS
-    if min_tail_tokens is None:
-        min_tail_tokens = MIN_TAIL_TOKENS
+    if min_tail_ratio is None:
+        min_tail_ratio = MIN_TAIL_RATIO
     
     seq_len = hidden_states.size(1)
 
@@ -152,8 +160,9 @@ def apply_token_pruning(
     # importance scores: [seq_len]
     scores = pruning_module(hs_flat)
 
-    # Always keep the first min_head_tokens and last min_tail_tokens
+    # Always keep the first min_head_tokens and last min_tail_ratio * seq_len tokens (as in paper)
     base_keep = set(range(min(min_head_tokens, seq_len)))
+    min_tail_tokens = max(16, int(seq_len * min_tail_ratio))  # At least 16, or 10% of sequence
     for i in range(max(0, seq_len - min_tail_tokens), seq_len):
         base_keep.add(i)
 
@@ -207,7 +216,7 @@ def prefill_with_pruning(
     keep_ratio: float,
     prune_layers: list = None,
     min_head_tokens: int = None,
-    min_tail_tokens: int = None,
+    min_tail_ratio: float = None,
 ) -> tuple[torch.Tensor, dict]:
     """
     Manual forward over Transformer layers with token pruning applied
@@ -228,8 +237,8 @@ def prefill_with_pruning(
         prune_layers = PRUNE_LAYERS
     if min_head_tokens is None:
         min_head_tokens = MIN_HEAD_TOKENS
-    if min_tail_tokens is None:
-        min_tail_tokens = MIN_TAIL_TOKENS
+    if min_tail_ratio is None:
+        min_tail_ratio = MIN_TAIL_RATIO
 
     # Embed tokens: [1, seq_len, hidden]
     hidden_states = model.model.embed_tokens(input_ids)
@@ -269,7 +278,7 @@ def prefill_with_pruning(
                 pruner,
                 keep_ratio,
                 min_head_tokens,
-                min_tail_tokens,
+                min_tail_ratio,
             )
             pruning_stats["total_pruning_steps"] += 1
             pruning_stats["total_tokens_pruned"] += stats["tokens_pruned"]
@@ -374,12 +383,14 @@ def profile_lengths(lengths, config_name: str = "keep07", save_json: bool = True
     
     Args:
         lengths: List of sequence lengths to test
-        config_name: Configuration name ("keep09" or "keep07")
+        config_name: Configuration name ("keep09", "keep08", or "keep07")
         save_json: Whether to save results to JSON
     """
     # Select configuration
     if config_name == "keep09":
         config = KEEP09_CONFIG
+    elif config_name == "keep08":
+        config = KEEP08_CONFIG
     else:
         config = KEEP07_CONFIG
     
@@ -404,7 +415,7 @@ def profile_lengths(lengths, config_name: str = "keep07", save_json: bool = True
                 "prune_layers": config["prune_layers"],
                 "keep_ratio": config["keep_ratio"],
                 "min_head_tokens": config["min_head_tokens"],
-                "min_tail_tokens": config["min_tail_tokens"],
+                "min_tail_ratio": config["min_tail_ratio"],
                 "cumulative_keep_ratio": config["cumulative_keep_ratio"],
             },
             "run_info": {
@@ -452,7 +463,7 @@ def profile_lengths(lengths, config_name: str = "keep07", save_json: bool = True
                     config["keep_ratio"],
                     config["prune_layers"],
                     config["min_head_tokens"],
-                    config["min_tail_tokens"],
+                    config["min_tail_ratio"],
                 )
                 return logits, stats
             
@@ -579,7 +590,7 @@ def parse_args():
         "--lengths",
         type=int,
         nargs="+",
-        default=[4096, 8192, 16384, 32768],
+        default=[1024, 2048, 4096, 8192, 16384, 32768],
     )
     parser.add_argument(
         "--keep_ratio",
@@ -589,9 +600,9 @@ def parse_args():
     )
     parser.add_argument(
         "--config",
-        choices=["keep09", "keep07"],
+        choices=["keep09", "keep08", "keep07"],
         default="keep07",
-        help="Configuration preset: keep09 (0.9 keep ratio) or keep07 (0.7 keep ratio)",
+        help="Configuration preset: keep09 (0.9), keep08 (0.8), or keep07 (0.7) keep ratio",
     )
     return parser.parse_args()
 
