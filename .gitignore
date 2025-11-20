@@ -129,7 +129,13 @@ dmypy.json
 .pyre/
 
 # Data files and directories
-data/
+# Ignore all contents in data/ directory
+data/*
+# But allow specific subdirectories to be tracked
+!data/lmeval_cache/
+!data/lmeval_cache/**
+!data/LongBench_data/
+!data/LongBench_data/**
 *.csv
 *.json
 *.pkl
