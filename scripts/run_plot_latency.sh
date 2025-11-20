@@ -1,17 +1,32 @@
 #!/bin/bash
 # Generate latency curves from JSON data
+# Automatically processes both single-GPU and multi-GPU results if available
 
-BASELINE=${1:-"results/latency_baseline.json"}
-SDTP=${2:-"results/latency_sdtp.json"}
-OUT_DIR=${3:-"results/fig"}
+OUT_DIR=${1:-"results/fig"}
 
-echo "[Plot Latency] Generating curves..."
-echo "  Baseline: $BASELINE"
-echo "  SDTP: $SDTP"
-echo "  Output: $OUT_DIR"
+echo "[Plot Latency] Processing available results..."
 
-python3 src/evaluation/plot_latency.py \
-    --baseline "$BASELINE" \
-    --sdtp "$SDTP" \
-    --out_dir "$OUT_DIR"
+# Single-GPU results
+if [ -f "results/latency_baseline.json" ] && [ -f "results/latency_sdtp.json" ]; then
+    echo "[Single-GPU] Generating curves..."
+    python3 src/evaluation/plot_latency.py \
+        --baseline "results/latency_baseline.json" \
+        --sdtp "results/latency_sdtp.json" \
+        --out_dir "$OUT_DIR" \
+        --prefix "singlegpu"
+    echo ""
+fi
+
+# Multi-GPU results
+if [ -f "results/latency_baseline_multigpu.json" ] && [ -f "results/latency_sdtp_multigpu.json" ]; then
+    echo "[Multi-GPU] Generating curves..."
+    python3 src/evaluation/plot_latency.py \
+        --baseline "results/latency_baseline_multigpu.json" \
+        --sdtp "results/latency_sdtp_multigpu.json" \
+        --out_dir "$OUT_DIR" \
+        --prefix "multigpu"
+    echo ""
+fi
+
+echo "[OK] All available plots generated!"
 

@@ -284,8 +284,8 @@ def profile_lengths(lengths, keep_ratio, save_json: bool = True):
     if save_json and baseline_results and sdtp_results:
         os.makedirs("results", exist_ok=True)
         
-        baseline_path = "results/latency_baseline.json"
-        sdtp_path = "results/latency_sdtp.json"
+        baseline_path = "results/latency_baseline_multigpu.json"
+        sdtp_path = "results/latency_sdtp_multigpu.json"
         
         with open(baseline_path, "w") as f:
             json.dump(baseline_results, f, indent=2)

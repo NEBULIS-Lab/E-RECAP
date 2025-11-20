@@ -202,6 +202,12 @@ def main():
         default=0.7,
         help="Token keep ratio for FLOPs estimation"
     )
+    parser.add_argument(
+        "--prefix",
+        type=str,
+        default="",
+        help="Prefix for output filenames (e.g., 'singlegpu_' or 'multigpu_')"
+    )
     
     args = parser.parse_args()
     
@@ -222,10 +228,11 @@ def main():
     
     print(f"[Info] Found {len(baseline)} baseline points, {len(sdtp)} SDTP points")
     
-    # Generate plots
-    plot_latency(baseline, sdtp, os.path.join(args.out_dir, "latency_curve.png"))
-    plot_speedup(baseline, sdtp, os.path.join(args.out_dir, "speedup_curve.png"))
-    plot_flops(baseline, sdtp, os.path.join(args.out_dir, "flops_curve.png"), 
+    # Generate plots with optional prefix
+    prefix = f"{args.prefix}_" if args.prefix else ""
+    plot_latency(baseline, sdtp, os.path.join(args.out_dir, f"{prefix}latency_curve.png"))
+    plot_speedup(baseline, sdtp, os.path.join(args.out_dir, f"{prefix}speedup_curve.png"))
+    plot_flops(baseline, sdtp, os.path.join(args.out_dir, f"{prefix}flops_curve.png"), 
                keep_ratio=args.keep_ratio)
     
     print("[OK] All plots generated successfully!")
