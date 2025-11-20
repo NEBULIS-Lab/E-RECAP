@@ -259,12 +259,19 @@ secrets.json
 *.iso
 
 # Project documentation files and metadata files
-paper.txt # original paper 参考论文
-sdtp_reproduction_plan.md # reproduction plan 复现计划
-stdp-project-2025.json # project metadata 项目网页报告
-PHASE2_PROGRESS.md # phase 2 progress 阶段2进度记录
-theoretical_summary.md # theoretical summary 理论总结
-Ablation.md # ablation study 消融实验设计思路
-code_theory_verification.md # code and theory verification 代码和理论的对比
+# original paper 参考论文
+paper.txt
+# reproduction plan 复现计划
+sdtp_reproduction_plan.md
+# project metadata 项目网页报告
+stdp-project-2025.json
+# phase 2 progress 阶段2进度记录
+PHASE2_PROGRESS.md
+# theoretical summary 理论总结
+theoretical_summary.md
+# ablation study 消融实验设计思路
+Ablation.md
+# code and theory verification 代码和理论的对比
+code_theory_verification.md
 gpu.md
 error.md
