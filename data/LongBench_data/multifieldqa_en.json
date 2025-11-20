@@ -1,0 +1,902 @@
+[
+  {
+    "input": "What is the name of the most active fan club?",
+    "answers": [
+      "South West Ultras fan club."
+    ]
+  },
+  {
+    "input": "Is the ISR necessary for transgene reactivation?",
+    "answers": [
+      "No, it is not necessary."
+    ]
+  },
+  {
+    "input": "What experimental techniques were used to study the quantum dot structures in this research?",
+    "answers": [
+      "Low temperature scanning tunneling microscopy and spectroscopy (STM/STS)."
+    ]
+  },
+  {
+    "input": "What is the purpose of an ICD?",
+    "answers": [
+      "Implantable Cardioverter Defibrillator (ICD) is a surgically implanted electronic device to treat life-threatening heartbeat irregularities."
+    ]
+  },
+  {
+    "input": "Why is it important for the sides of the fuselage to be sloped (tumbled home)?",
+    "answers": [
+      "The sides of the fuselage are sloped to create a conical section when the fuselage is formed."
+    ]
+  },
+  {
+    "input": "What is the effect of the proximity of superconductivity on the Kondo effect?",
+    "answers": [
+      "It tends to suppress the Kondo effect."
+    ]
+  },
+  {
+    "input": "How is electricity used in everyday life?",
+    "answers": [
+      "Electricity is used for transport, heating, lighting, communications, and computation."
+    ]
+  },
+  {
+    "input": "What was Hugh H. Goodwin's rank in the United States Navy?",
+    "answers": [
+      "Vice Admiral."
+    ]
+  },
+  {
+    "input": "What was the Buckeyes' record in their first game of the season?",
+    "answers": [
+      "They won their first game with a score of 15-3."
+    ]
+  },
+  {
+    "input": "What are the three synthetic types of vitamin K?",
+    "answers": [
+      "Vitamins K3, K4, and K5."
+    ]
+  },
+  {
+    "input": "Can individual molecules of indeno[1,2-a]fluorene switch between open-shell and closed-shell states?",
+    "answers": [
+      "Yes, individual molecules of indeno[1,2-a]fluorene can switch between open-shell and closed-shell states by changing their adsorption site on the surface."
+    ]
+  },
+  {
+    "input": "What field does Danny work in in Tennessee?",
+    "answers": [
+      "3-D printing and software development."
+    ]
+  },
+  {
+    "input": "What is the recommended daily intake of vitamin K for adult women and men?",
+    "answers": [
+      "90 μg for women and 120 μg for men."
+    ]
+  },
+  {
+    "input": "What is the SI unit of power?",
+    "answers": [
+      "Watt, one joule per second."
+    ]
+  },
+  {
+    "input": "What is the main advantage of a horizontal business model for mobile devices?",
+    "answers": [
+      "Flexibility."
+    ]
+  },
+  {
+    "input": "Who was Brooksley Elizabeth's first husband?",
+    "answers": [
+      "Jacob C. Landau."
+    ]
+  },
+  {
+    "input": "What is the main methodology used in the research?",
+    "answers": [
+      "An unsupervised method based on the information bottleneck and contrastive learning."
+    ]
+  },
+  {
+    "input": "How is the function beta(r) determined in the derivation?",
+    "answers": [
+      "Using the vacuum Einstein equation and the Baez-Bunn form."
+    ]
+  },
+  {
+    "input": "What is the water depth in the Greater Ekofisk Area?",
+    "answers": [
+      "The water depth in the Greater Ekofisk Area is 70-75 meters."
+    ]
+  },
+  {
+    "input": "What were the vaccines trialed against?",
+    "answers": [
+      "Other toxic products."
+    ]
+  },
+  {
+    "input": "Where was Margaret Way born and where did she die?",
+    "answers": [
+      "Margaret Way was born in Brisbane and died in Cleveland, Queensland, Australia."
+    ]
+  },
+  {
+    "input": "What size chains were used in the benchmarking?",
+    "answers": [
+      "L = 8 and L = 14."
+    ]
+  },
+  {
+    "input": "How many experiments were demonstrated to test the capabilities of the controller?",
+    "answers": [
+      "5."
+    ]
+  },
+  {
+    "input": "What are the three teams that used conflict optimization in the challenge?",
+    "answers": [
+      "Lasa, Gitastrophe, and Shadoks."
+    ]
+  },
+  {
+    "input": "What did the court in In re Ferguson conclude about the transformation prong of the Bilski test?",
+    "answers": [
+      "It required the transformation to be limited to specific data and a visual depiction representing specific objects or substances."
+    ]
+  },
+  {
+    "input": "How does the transition probability of the environment affect the learning rate in the static agent?",
+    "answers": [
+      "As the transition probability increases, the learning rate initially rises and then declines."
+    ]
+  },
+  {
+    "input": "What kind of ultracold neutral plasmas does this study focus on?",
+    "answers": [
+      "A subset that form via kinetic rate processes from state-selected Rydberg gases."
+    ]
+  },
+  {
+    "input": "What types of sensors are now capable of estimating physical activity levels and physiological outcomes of older adults?",
+    "answers": [
+      "Wearable sensors."
+    ]
+  },
+  {
+    "input": "What did the decision to base the water rates on usage reflect?",
+    "answers": [
+      "Fairness."
+    ]
+  },
+  {
+    "input": "What did Mary tell the disciples?",
+    "answers": [
+      "\"I have seen the Lord.\"."
+    ]
+  },
+  {
+    "input": "What is the future direction mentioned in the conclusion?",
+    "answers": [
+      "Verifying other meta-information such as patient's gender, age, race, etc."
+    ]
+  },
+  {
+    "input": "What types of data did the authors use in their experiments?",
+    "answers": [
+      "The authors used simulated data and real data from a wireless MISO channel."
+    ]
+  },
+  {
+    "input": "What is the purpose of the baseline in the layout procedure?",
+    "answers": [
+      "The baseline is used as a reference for the mid point of the firewall for the developed side panel."
+    ]
+  },
+  {
+    "input": "What does the new Iraqi Body Count organization do?",
+    "answers": [
+      "It provides cover for the war and allows supporters of the illegal war to point to it."
+    ]
+  },
+  {
+    "input": "What is the main advantage of the proposed method in terms of computation time?",
+    "answers": [
+      "The time required to update the belief does not increase with the complexity of the environment."
+    ]
+  },
+  {
+    "input": "When did the Tevatron Collider Run II start and when is it expected to end?",
+    "answers": [
+      "The Tevatron Collider Run II started in March 2002 and is expected to continue until the end of this decade."
+    ]
+  },
+  {
+    "input": "How many brother does Njoroge have?",
+    "answers": [
+      "Four."
+    ]
+  },
+  {
+    "input": "What are the stability conditions for a solution of $-\\Delta u = f(u)$?",
+    "answers": [
+      "$\\int f'(u) \\psi^2 \\le \\int | \\nabla \\psi|^2, \\forall \\psi \\in C_c^2$."
+    ]
+  },
+  {
+    "input": "What algorithm is engaged in the PLMS-PPIC method?",
+    "answers": [
+      "The normalized least mean square (NLMS) algorithm."
+    ]
+  },
+  {
+    "input": "Who compiled the 88-page letter to the HHS regarding vaccine safety?",
+    "answers": [
+      "Del Bigtree and his team at ICAN."
+    ]
+  },
+  {
+    "input": "What molecule was the focus of the study?",
+    "answers": [
+      "The focus of the study was on the reactive radical ethynyl (C$_2$H)."
+    ]
+  },
+  {
+    "input": "When was Weep Not, Child first published?",
+    "answers": [
+      "Weep Not, Child was first published in 1964."
+    ]
+  },
+  {
+    "input": "What is the relationship between the maximum velocity and the amplitude of the blob or depletion?",
+    "answers": [
+      "The maximum velocity scales with the square root of the amplitude."
+    ]
+  },
+  {
+    "input": "What do dendritic spines contain?",
+    "answers": [
+      "They are rich in actin and have been shown to be highly dynamic."
+    ]
+  },
+  {
+    "input": "How many people attend the 233rd ACS national meeting?",
+    "answers": [
+      "There are 14,520 attendees, including 7,152 chemical scientists, 5,059 students, 1,283 exhibitors, 119 precollege teachers, 573 exposition visitors, and 453 guests."
+    ]
+  },
+  {
+    "input": "What did Justice Kennedy argue about Quill in Direct Marketing Ass'n v. Brohl?",
+    "answers": [
+      "Quill harmed states more than anticipated due to the Internet."
+    ]
+  },
+  {
+    "input": "What factors control the reliance of artificial organisms on plasticity?",
+    "answers": [
+      "Environmental fluctuation and uncertainty control the reliance of artificial organisms on plasticity."
+    ]
+  },
+  {
+    "input": "What is the problem encountered when building the fuselage sides?",
+    "answers": [
+      "The longerons bow up from the building surface, forming a \"banana\" shape."
+    ]
+  },
+  {
+    "input": "When did Goodwin become a Naval aviator?",
+    "answers": [
+      "Goodwin became a Naval aviator in January 1929."
+    ]
+  },
+  {
+    "input": "对于PD3.0协议，FS312BH支持的最高诱骗电压是多少？",
+    "answers": [
+      "48V."
+    ]
+  },
+  {
+    "input": "When did Born resign as chairperson of the CFTC?",
+    "answers": [
+      "June 1, 1999."
+    ]
+  },
+  {
+    "input": "Which orders did Mufti-e-Azam-e-Hind receive Khilafat from?",
+    "answers": [
+      "Mufti-e-Azam-e-Hind received Khilafat in the Qaderi, Chishti, Nakshbandi, Suharwardi, and Madaari Orders."
+    ]
+  },
+  {
+    "input": "What was the reason given by Governor Rick Scott for not implementing a prescription drug monitoring database in Florida?",
+    "answers": [
+      "Privacy concerns and skepticism about its effectiveness."
+    ]
+  },
+  {
+    "input": "In which electorate was Simon English elected to the New Zealand Parliament?",
+    "answers": [
+      "The Wallace electorate."
+    ]
+  },
+  {
+    "input": "What was the population of McPherson County according to the 2020 census?",
+    "answers": [
+      "30,223."
+    ]
+  },
+  {
+    "input": "When did Margaret Way start self-publishing her books as e-books?",
+    "answers": [
+      "Margaret Way started self-publishing her books as e-books in 2013."
+    ]
+  },
+  {
+    "input": "When did the 2017 general election be held?",
+    "answers": [
+      "23 September."
+    ]
+  },
+  {
+    "input": "What hedge fund's collapse in 1998 highlighted the need for regulation of derivatives?",
+    "answers": [
+      "Long Term Capital Management (LTCM)."
+    ]
+  },
+  {
+    "input": "What is the dynamical behavior of the anisotropic order parameter following a quench to the critical point?",
+    "answers": [
+      "It is well described by the Gaussian theory."
+    ]
+  },
+  {
+    "input": "What is the recommended space for using the VR headset?",
+    "answers": [
+      "It is recommended to have at least a 2x2 meter space for using the VR headset."
+    ]
+  },
+  {
+    "input": "How does the performance of the PLM with decimation compare to other methods?",
+    "answers": [
+      "It outperforms mean-field methods and the PLM with $l_2$ regularization in terms of reconstruction error and true positive rate."
+    ]
+  },
+  {
+    "input": "What are the three phases of the author's preaching process?",
+    "answers": [
+      "The three phases are exegetical, theological, and homiletical."
+    ]
+  },
+  {
+    "input": "When did KSTP switch to a sports radio format?",
+    "answers": [
+      "KSTP switched to a sports radio format on February 15, 2010."
+    ]
+  },
+  {
+    "input": "What was the best performing model for the Spanish language in Track-1?",
+    "answers": [
+      "The best performing model for the Spanish language in Track-1 was Spanish BERT."
+    ]
+  },
+  {
+    "input": "How does the infall rate and gas density in the magnetized model compare to non-magnetized accretion?",
+    "answers": [
+      "Infall rate is 2-5 times smaller and gas density is 2-5 times smaller."
+    ]
+  },
+  {
+    "input": "According to the text, what is Toby Schindelbeck's observation about the police?",
+    "answers": [
+      "Toby Schindelbeck's observation is that the police say they aren't paid enough to enforce the laws in the streets."
+    ]
+  },
+  {
+    "input": "Who is the program chair of this conference?",
+    "answers": [
+      "Peter Denning."
+    ]
+  },
+  {
+    "input": "How does the conduction gap depend on the strain direction?",
+    "answers": [
+      "Peaks occur at certain strain directions, while the gap is zero at others."
+    ]
+  },
+  {
+    "input": "When was the paper published?",
+    "answers": [
+      "The paper was published on 7 March 2023."
+    ]
+  },
+  {
+    "input": "What are the three subsets into which the parameter space V is divided?",
+    "answers": [
+      "The three subsets are V+, V0, and V-, determined by the Kullback-Leibler information distance."
+    ]
+  },
+  {
+    "input": "What happens to Ngotho after he attacks Jacobo at a workers' strike?",
+    "answers": [
+      "After attacking Jacobo at a workers' strike, Ngotho loses his job and Njoroge's family is forced to move."
+    ]
+  },
+  {
+    "input": "Where is the club's headquarters located?",
+    "answers": [
+      "The club's headquarters are located on Jivani Street 2 of the Malatia-Sebastia District, Yerevan."
+    ]
+  },
+  {
+    "input": "How do the runtimes and iteration counts of NFPA and FPSA compare to GMRES and DSA in the numerical experiments?",
+    "answers": [
+      "NFPA and FPSA greatly outperform GMRES and DSA."
+    ]
+  },
+  {
+    "input": "What are some reasons for the lack of data sharing in archaeobotany?",
+    "answers": [
+      "Technological limitations, resistance to exposing data to scrutiny, and desire to hold onto data for personal use."
+    ]
+  },
+  {
+    "input": "What are some fields in which the inverse problem is encountered?",
+    "answers": [
+      "Physics, biology, social sciences, finance, and neuroscience are some fields in which the inverse problem is encountered."
+    ]
+  },
+  {
+    "input": "What is the maximum radius of the emitting region for the black body model?",
+    "answers": [
+      "4.5x10^8 cm."
+    ]
+  },
+  {
+    "input": "Which air unit did Goodwin command during the initial landings of Marines on Saipan?",
+    "answers": [
+      "VC-10 Squadron."
+    ]
+  },
+  {
+    "input": "How does the receptive field size affect the completion of shapes?",
+    "answers": [
+      "Bigger receptive field size leads to more successful shape completion."
+    ]
+  },
+  {
+    "input": "What is the significance of the interlayer Berry connection polarizability?",
+    "answers": [
+      "The momentum space curl of the interlayer Berry connection polarizability generates the crossed nonlinear dynamical Hall effect."
+    ]
+  },
+  {
+    "input": "Can the denoiser be applied to circuits with non-Clifford noise?",
+    "answers": [
+      "Yes, the denoiser works for non-Clifford local noise channels."
+    ]
+  },
+  {
+    "input": "What is Professor Tulis's forthcoming book?",
+    "answers": [
+      "Legacies of Losing in American Politics and an expanded edition of The Rhetorical Presidency in the Princeton Classics series."
+    ]
+  },
+  {
+    "input": "How does a media application determine the context of an event?",
+    "answers": [
+      "It uses a content-recognition module or algorithm."
+    ]
+  },
+  {
+    "input": "What are the titles of one of Kam W. Leong's publications in Journal of Controlled Release?",
+    "answers": [
+      "Sustained viral gene delivery through core-shell fibers and Gene transfer to hemophilia A mice via oral delivery of FVIII-chitosan nanoparticles."
+    ]
+  },
+  {
+    "input": "What was the club known as before being officially renamed FC Urartu?",
+    "answers": [
+      "FC Banants."
+    ]
+  },
+  {
+    "input": "What was the conclusion of the study?",
+    "answers": [
+      "The conclusion was that fruit consumption may provide a protective effect for mercury exposure in Amazonian riparians."
+    ]
+  },
+  {
+    "input": "How does the scoring engine generate a stream of content for the channel?",
+    "answers": [
+      "By comparing candidate content items to a model and scoring them."
+    ]
+  },
+  {
+    "input": "When did the club win the Armenian Premier League for the first time?",
+    "answers": [
+      "In the 2013-2014 season."
+    ]
+  },
+  {
+    "input": "How many novels did Margaret Way write?",
+    "answers": [
+      "Margaret Way wrote more than 120 novels."
+    ]
+  },
+  {
+    "input": "What is the proposed approach in this research paper?",
+    "answers": [
+      "This research paper proposed an approach based on approximating the posterior distribution with an isotropic Gaussian distribution."
+    ]
+  },
+  {
+    "input": "Does DUO contain more instances per image than COCO?",
+    "answers": [
+      "Yes, DUO has 9.57 instances per image while COCO contains 7.7."
+    ]
+  },
+  {
+    "input": "What are the symptoms of vitamin K deficiency?",
+    "answers": [
+      "Symptoms of vitamin K deficiency include anemia, bruising, nosebleeds, bleeding of the gums, and heavy menstrual bleeding in women."
+    ]
+  },
+  {
+    "input": "What is the security parameter for the AES-256 block cipher?",
+    "answers": [
+      "172."
+    ]
+  },
+  {
+    "input": "What is the definition of mobile device management (MDM)?",
+    "answers": [
+      "Centralized control of mobile devices and applications."
+    ]
+  },
+  {
+    "input": "What models were used for dialect identification?",
+    "answers": [
+      "BERT, RoBERTa, ELECTRA, GPT-2, and XLM-RoBERTa."
+    ]
+  },
+  {
+    "input": "What are the restrictions on the use of Broadjam's servers?",
+    "answers": [
+      "No excessive overloading and no use for illegal activity."
+    ]
+  },
+  {
+    "input": "How is the vacuum processing system configured in terms of the arrangement of the vacuum processing apparatus?",
+    "answers": [
+      "Multiple vacuum processing apparatuses are arranged in parallel."
+    ]
+  },
+  {
+    "input": "How many massive star-forming regions were studied?",
+    "answers": [
+      "21."
+    ]
+  },
+  {
+    "input": "What is the average magnetic moment per column in Ge$_{1-x}$Mn$_{x}$ films?",
+    "answers": [
+      "1425 $\\mu_{B}$."
+    ]
+  },
+  {
+    "input": "Is there any evidence of heaven and hell?",
+    "answers": [
+      "Unknown."
+    ]
+  },
+  {
+    "input": "When will BC leave Boston?",
+    "answers": [
+      "August 25."
+    ]
+  },
+  {
+    "input": "What are the benefits of using binary variables in the SLAS formulation?",
+    "answers": [
+      "Reduced computational complexity."
+    ]
+  },
+  {
+    "input": "Where can users go for troubleshooting and support?",
+    "answers": [
+      "Online documentation, QuecPython community, online support: QQ group 445121768."
+    ]
+  },
+  {
+    "input": "What are the symptoms of alpha thalassemia major?",
+    "answers": [
+      "Severe anemia that begins even before birth."
+    ]
+  },
+  {
+    "input": "When did Simon English become the leader of the National Party?",
+    "answers": [
+      "October 2001."
+    ]
+  },
+  {
+    "input": "How are smartphones and tablets different from a technical perspective?",
+    "answers": [
+      "Smartphones are more compact and power constrained."
+    ]
+  },
+  {
+    "input": "What is the sticking point in the political showdown over the budget?",
+    "answers": [
+      "The sticking point in the political showdown over the budget is how much spending to cut."
+    ]
+  },
+  {
+    "input": "Who is responsible for carrying out the functions assigned under the act?",
+    "answers": [
+      "The Director of Town and Country Planning is responsible for carrying out the functions assigned under the act."
+    ]
+  },
+  {
+    "input": "How does the framework capture the reduced-order dynamics?",
+    "answers": [
+      "By using a propagator in the latent space."
+    ]
+  },
+  {
+    "input": "How can you level up in the early levels?",
+    "answers": [
+      "Keep deploying and harvesting your bases to earn experience points and level up quickly."
+    ]
+  },
+  {
+    "input": "What is the electron correlation parameter, $\\Gamma_e$?",
+    "answers": [
+      "It is the ratio of the average unscreened electron-electron potential energy to kinetic energy."
+    ]
+  },
+  {
+    "input": "How can players skip dialogue on the quest map?",
+    "answers": [
+      "Players can skip dialogue on the quest map by pressing the 'SKIP' button."
+    ]
+  },
+  {
+    "input": "How many years has KSTP-FM 102.1 been on the air?",
+    "answers": [
+      "Four years."
+    ]
+  },
+  {
+    "input": "Besides the Boeing C-17, what other transport aircraft is the IAF considering for acquisition?",
+    "answers": [
+      "The IAF is considering the acquisition of the Airbus A330 MRTT (Multi-Role Tanker Transport) besides the Boeing C-17."
+    ]
+  },
+  {
+    "input": "What may happen if the VR headset lenses are exposed to sunlight or strong light?",
+    "answers": [
+      "Exposure to sunlight or strong light may cause permanent yellow spot damage on the screen."
+    ]
+  },
+  {
+    "input": "Why does Craig want to find his own place?",
+    "answers": [
+      "Because his roommate smokes."
+    ]
+  },
+  {
+    "input": "What did the London Directory proclaim to contain?",
+    "answers": [
+      "An alphabetical list of names and places of abode of the merchants and principal traders of the cities of London and Westminster, the Borough of Southwark, and their environs, with the number affixed to each house."
+    ]
+  },
+  {
+    "input": "What happens to the high resolution of what we focus on at dawn or dusk?",
+    "answers": [
+      "It becomes a bit less so that what's off to the left or right can be better noted."
+    ]
+  },
+  {
+    "input": "What is the group's request to the Connecticut DEEP Commissioner?",
+    "answers": [
+      "Appointing a blue ribbon commission to conduct the research and develop the management plan and denying or defering approval on any applications for new docks in the Cove until the management plan can be developed and implemented."
+    ]
+  },
+  {
+    "input": "What type of distribution do the tail distributions of price returns follow?",
+    "answers": [
+      "Power-law functions."
+    ]
+  },
+  {
+    "input": "What is the correct expression for the derivative of the function?",
+    "answers": [
+      "It depends on the value of x, either 0 or (6x^2cos(x^2)+sin(x^2))/(3(x^2)^(1/3))."
+    ]
+  },
+  {
+    "input": "What award did Brooksley Born receive in 2009?",
+    "answers": [
+      "In 2009, Brooksley Born received the John F. Kennedy Profiles in Courage Award."
+    ]
+  },
+  {
+    "input": "What does the paper aim to solve?",
+    "answers": [
+      "The paper aims to solve nonlinear system vibration problems efficiently."
+    ]
+  },
+  {
+    "input": "What was the name of the first white settlement in McPherson County?",
+    "answers": [
+      "The first white settlement in McPherson County was Fuller's Ranch, established by Charles O. Fuller."
+    ]
+  },
+  {
+    "input": "What algorithm is engaged in the PLMS-PPIC method?",
+    "answers": [
+      "The normalized least mean square (NLMS) algorithm."
+    ]
+  },
+  {
+    "input": "What is the effect of accounting for path preference on the robot's belief update?",
+    "answers": [
+      "The belief entropy decreases more steadily."
+    ]
+  },
+  {
+    "input": "What are the two ground states observed for indeno[1,2-a]fluorene on NaCl surfaces?",
+    "answers": [
+      "Open-shell π-diradical state and closed-shell state with a para-quinodimethane moiety."
+    ]
+  },
+  {
+    "input": "What is the main focus of the research paper?",
+    "answers": [
+      "Nuclear liquid-gas transition in lattice QCD."
+    ]
+  },
+  {
+    "input": "What is the rationality coefficient used in the observation model?",
+    "answers": [
+      "γh."
+    ]
+  },
+  {
+    "input": "Who was Ralph Rokebye's brother?",
+    "answers": [
+      "Sir Richard."
+    ]
+  },
+  {
+    "input": "How are thalassemias classified?",
+    "answers": [
+      "According to the globin that is affected (alpha or beta)."
+    ]
+  },
+  {
+    "input": "Who is the county seat of McPherson County?",
+    "answers": [
+      "McPherson."
+    ]
+  },
+  {
+    "input": "When was McPherson County established as a county?",
+    "answers": [
+      "McPherson County was established as a county in 1867."
+    ]
+  },
+  {
+    "input": "如何安装并启动Ganache?",
+    "answers": [
+      "使用安装包安装Ganache；打开程序，用户可以从显示的界面中查看账户、区块、交易和日志；点击“设置”，用户可以设置绑定的ip和端口、账户数量以及gas限制等，点击“restart”后设置生效。此时，Ganache已经在本机运行了一个以太坊私有网络，并绑定了8545端口。."
+    ]
+  },
+  {
+    "input": "What is the advantage of decorrelating the data before running the PLS algorithm?",
+    "answers": [
+      "Decorrelating the data before running the PLS algorithm improves the performance of the algorithm."
+    ]
+  },
+  {
+    "input": "What is the name of the generative interactive model used in the method?",
+    "answers": [
+      "The generative interactive model used in the method is called the Coupled Generalized Dynamic Bayesian Network (C-GDBN)."
+    ]
+  },
+  {
+    "input": "What are some potential applications of ferromagnetic semiconductors?",
+    "answers": [
+      "Spin injection into non magnetic semiconductors, or electrical manipulation of carrier induced magnetism in magnetic semiconductors."
+    ]
+  },
+  {
+    "input": "How many underclassmen are on the NBA Draft Early-Entry List?",
+    "answers": [
+      "62."
+    ]
+  },
+  {
+    "input": "When did the London Paving and Lighting Act pass, which mandated the numbering of houses?",
+    "answers": [
+      "1766."
+    ]
+  },
+  {
+    "input": "What is the main topic of the text?",
+    "answers": [
+      "The main topic of the text is Iraq's politics and current situation."
+    ]
+  },
+  {
+    "input": "What is the potential of SNNs in modeling the visual system?",
+    "answers": [
+      "SNNs have the potential to better model and explain the functional hierarchy and mechanisms of the visual system."
+    ]
+  },
+  {
+    "input": "What position did Simon English hold in the 2008 general election?",
+    "answers": [
+      "He became deputy prime minister and minister of finance."
+    ]
+  },
+  {
+    "input": "What is the score achieved by the authors for Track-2?",
+    "answers": [
+      "85.61%."
+    ]
+  },
+  {
+    "input": "How does the specific-heat ratio affect the average motion of the bubble?",
+    "answers": [
+      "The specific-heat ratio affects the average motion of the bubble. The bubbles with smaller specific-heat ratios have slower average motion."
+    ]
+  },
+  {
+    "input": "Where is McPherson County located?",
+    "answers": [
+      "McPherson County is located in the U.S. state of Kansas."
+    ]
+  },
+  {
+    "input": "What is the scaling form for the alternative order parameter O?",
+    "answers": [
+      "O(t, L_{\\parallel}; S_\\Delta) = L_{\\parallel}^{-\\beta/[\\nu(1+\\Delta)]} \\tilde f_O(t/L_{\\parallel}^{z/(1+\\Delta)}; S_\\Delta)."
+    ]
+  },
+  {
+    "input": "How are the relationships between catch per set and fishing behavior variables different for different measures of catch per unit effort (CPUE)?",
+    "answers": [
+      "The relationships between catch per set and fishing behavior variables differ when comparing unstandardized CPUE and standardized CPUE."
+    ]
+  },
+  {
+    "input": "What genre did Margaret Way write in?",
+    "answers": [
+      "Romance novels and women's fiction."
+    ]
+  },
+  {
+    "input": "Can someone sell or modify the Agency Spotter Content?",
+    "answers": [
+      "No."
+    ]
+  },
+  {
+    "input": "What are the datasets used in this community for research?",
+    "answers": [
+      "URPC2017, URPC2018, URPC2019, URPC2020_ZJ and URPC2020_DL."
+    ]
+  },
+  {
+    "input": "What is the research opportunity that is mentioned?",
+    "answers": [
+      "A study on the effects of Brazilian Jiu Jitsu and psychotherapy on people with autism."
+    ]
+  }
+]

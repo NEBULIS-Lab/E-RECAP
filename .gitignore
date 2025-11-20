@@ -138,6 +138,9 @@ data/*
 !data/LongBench_data/**
 *.csv
 *.json
+# But allow JSON files in specific data subdirectories
+!data/lmeval_cache/**/*.json
+!data/LongBench_data/**/*.json
 *.pkl
 *.pickle
 *.h5
