@@ -301,8 +301,28 @@ class SDTPModel(nn.Module):
                 past_key_value=None,
                 use_cache=True,
             )
-            hidden_states = block_outputs[0]
-            layer_past = block_outputs[1]  # (key, value)
+            
+            # Handle different output formats: tuple or BaseModelOutputWithPast
+            if isinstance(block_outputs, tuple):
+                hidden_states = block_outputs[0]
+                layer_past = block_outputs[1]  # (key, value) or None
+            else:
+                # BaseModelOutputWithPast or similar object
+                hidden_states = block_outputs[0]
+                layer_past = getattr(block_outputs, 'past_key_value', None)
+                if layer_past is None and hasattr(block_outputs, 'past_key_values'):
+                    # Some models return past_key_values as a list
+                    past_key_values_list = block_outputs.past_key_values
+                    if past_key_values_list and len(past_key_values_list) > 0:
+                        layer_past = past_key_values_list[0] if isinstance(past_key_values_list[0], tuple) else None
+            
+            # CRITICAL: Check if layer_past is None (some models may not return it even with use_cache=True)
+            if layer_past is None:
+                raise ValueError(
+                    f"Layer {idx} returned None for past_key_value even though use_cache=True. "
+                    f"block_outputs type: {type(block_outputs)}, "
+                    f"This may indicate a model compatibility issue."
+                )
 
             # Optional pruning module
             # ModuleDict doesn't support .get() in all PyTorch versions, use try-except instead
@@ -333,6 +353,12 @@ class SDTPModel(nn.Module):
                 original_len = hidden_states.size(1)
 
                 # Prune this layer's KV cache along sequence dim=2
+                # CRITICAL: layer_past should be a tuple (key, value) at this point
+                if not isinstance(layer_past, tuple) or len(layer_past) != 2:
+                    raise ValueError(
+                        f"Layer {idx} past_key_value has unexpected format: {type(layer_past)}. "
+                        f"Expected tuple of (key, value)."
+                    )
                 key, value = layer_past
                 # key, value shape: [batch, num_heads, seq_len, head_dim]
                 kept_flat = kept_idx.squeeze(0)  # [new_len]
