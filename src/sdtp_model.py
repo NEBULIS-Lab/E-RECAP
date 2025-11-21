@@ -347,24 +347,40 @@ class SDTPModel(nn.Module):
                 
                 # If still None, we need to create KV cache manually
                 # This happens when the model doesn't return KV cache on first forward
+                # CRITICAL FIX: For GQA models (like Qwen2), use num_key_value_heads, not num_attention_heads
                 if layer_past is None:
                     # Create KV cache from current hidden_states shape
                     # CRITICAL: Use current hidden_states.shape[1] (which may be pruned) not original seq_len
                     batch_size, current_seq_len, hidden_size = hidden_states.shape
-                    # Try to get num_heads from attention layer or use default
+                    # Get num_key_value_heads for GQA models (Qwen2: 28 attention heads, 4 KV heads)
                     if hasattr(block, 'self_attn'):
                         attn_layer = block.self_attn
-                        num_heads = getattr(attn_layer, 'num_heads', 
-                                          getattr(attn_layer, 'num_attention_heads', 
-                                                getattr(block, 'num_heads', 32)))
+                        # CRITICAL: For GQA, use num_key_value_heads, fallback to num_heads/num_attention_heads
+                        num_key_value_heads = getattr(attn_layer, 'num_key_value_heads', None)
+                        if num_key_value_heads is None:
+                            # Fallback: try to get from config or use num_heads
+                            num_key_value_heads = getattr(self.model.config, 'num_key_value_heads', None)
+                        if num_key_value_heads is None:
+                            # Last resort: use num_heads (assumes no GQA)
+                            num_key_value_heads = getattr(attn_layer, 'num_heads', 
+                                                         getattr(attn_layer, 'num_attention_heads', 
+                                                                getattr(self.model.config, 'num_attention_heads', 32)))
                     else:
-                        num_heads = 32  # Default fallback
-                    head_dim = hidden_size // num_heads
+                        # Fallback to config
+                        num_key_value_heads = getattr(self.model.config, 'num_key_value_heads', 
+                                                     getattr(self.model.config, 'num_attention_heads', 32))
+                    
+                    # Get head_dim from config or compute from hidden_size
+                    head_dim = getattr(self.model.config, 'head_dim', None)
+                    if head_dim is None:
+                        # Compute from hidden_size and num_key_value_heads
+                        head_dim = hidden_size // num_key_value_heads
+                    
                     # Create placeholder KV cache matching current sequence length
-                    # This ensures all layers have consistent KV cache sequence lengths
-                    key = torch.zeros(batch_size, num_heads, current_seq_len, head_dim,
+                    # CRITICAL: Use num_key_value_heads for GQA compatibility
+                    key = torch.zeros(batch_size, num_key_value_heads, current_seq_len, head_dim,
                                      dtype=hidden_states.dtype, device=hidden_states.device)
-                    value = torch.zeros(batch_size, num_heads, current_seq_len, head_dim,
+                    value = torch.zeros(batch_size, num_key_value_heads, current_seq_len, head_dim,
                                       dtype=hidden_states.dtype, device=hidden_states.device)
                     layer_past = (key, value)
 
@@ -398,16 +414,31 @@ class SDTPModel(nn.Module):
 
                 # Prune this layer's KV cache along sequence dim=2
                 # CRITICAL: layer_past should be a tuple (key, value) at this point
+                # For GQA models (Qwen2), key/value have shape [batch, num_key_value_heads, seq_len, head_dim]
+                # We prune along dim=2 (sequence dimension), which is compatible with GQA
                 if not isinstance(layer_past, tuple) or len(layer_past) != 2:
                     raise ValueError(
                         f"Layer {idx} past_key_value has unexpected format: {type(layer_past)}. "
                         f"Expected tuple of (key, value)."
                     )
                 key, value = layer_past
-                # key, value shape: [batch, num_heads, seq_len, head_dim]
+                # key, value shape: [batch, num_key_value_heads, seq_len, head_dim] for GQA
+                # or [batch, num_heads, seq_len, head_dim] for standard attention
+                # CRITICAL: Verify sequence dimension matches
+                if key.size(2) != original_len:
+                    raise ValueError(
+                        f"Layer {idx}: KV cache sequence length {key.size(2)} != hidden_states length {original_len}. "
+                        f"This indicates a mismatch in KV cache creation."
+                    )
                 kept_flat = kept_idx.squeeze(0)  # [new_len]
+                # Prune along sequence dimension (dim=2) - compatible with both standard and GQA
                 key = key.index_select(dim=2, index=kept_flat)
                 value = value.index_select(dim=2, index=kept_flat)
+                # Verify pruned KV cache has correct sequence length
+                if key.size(2) != new_len:
+                    raise ValueError(
+                        f"Layer {idx}: Pruned KV cache sequence length {key.size(2)} != expected {new_len}"
+                    )
                 layer_past = (key, value)
 
                 # Update state / stats
