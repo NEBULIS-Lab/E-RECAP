@@ -349,8 +349,8 @@ class SDTPModel(nn.Module):
                 # This happens when the model doesn't return KV cache on first forward
                 if layer_past is None:
                     # Create KV cache from current hidden_states shape
-                    # We'll update it after pruning if needed
-                    batch_size, seq_len, hidden_size = hidden_states.shape
+                    # CRITICAL: Use current hidden_states.shape[1] (which may be pruned) not original seq_len
+                    batch_size, current_seq_len, hidden_size = hidden_states.shape
                     # Try to get num_heads from attention layer or use default
                     if hasattr(block, 'self_attn'):
                         attn_layer = block.self_attn
@@ -360,10 +360,11 @@ class SDTPModel(nn.Module):
                     else:
                         num_heads = 32  # Default fallback
                     head_dim = hidden_size // num_heads
-                    # Create placeholder KV cache (will be properly computed if model supports it)
-                    key = torch.zeros(batch_size, num_heads, seq_len, head_dim,
+                    # Create placeholder KV cache matching current sequence length
+                    # This ensures all layers have consistent KV cache sequence lengths
+                    key = torch.zeros(batch_size, num_heads, current_seq_len, head_dim,
                                      dtype=hidden_states.dtype, device=hidden_states.device)
-                    value = torch.zeros(batch_size, num_heads, seq_len, head_dim,
+                    value = torch.zeros(batch_size, num_heads, current_seq_len, head_dim,
                                       dtype=hidden_states.dtype, device=hidden_states.device)
                     layer_past = (key, value)
 
@@ -431,8 +432,34 @@ class SDTPModel(nn.Module):
                 pruning_stats["total_tokens_pruned"] += tokens_pruned
                 pruning_stats["final_length"] = tokens_kept
                 pruning_stats["layer_stats"].append(layer_stat)
+            else:
+                # For layers without pruning, we still need to ensure KV cache matches current sequence length
+                # This is critical: if previous layers were pruned, current hidden_states has shorter length
+                # So we need to adjust the KV cache to match the current sequence length
+                if layer_past is not None and isinstance(layer_past, tuple) and len(layer_past) == 2:
+                    key, value = layer_past
+                    current_seq_len = hidden_states.size(1)
+                    kv_seq_len = key.size(2)  # Sequence dimension
+                    
+                    # If KV cache length doesn't match current sequence length, adjust it
+                    if kv_seq_len != current_seq_len:
+                        # This can happen if previous layers were pruned
+                        # We need to truncate or pad the KV cache to match current length
+                        if kv_seq_len > current_seq_len:
+                            # Truncate: take first current_seq_len tokens
+                            key = key[:, :, :current_seq_len, :]
+                            value = value[:, :, :current_seq_len, :]
+                        else:
+                            # This shouldn't happen, but pad if needed
+                            # Actually, if kv_seq_len < current_seq_len, something is wrong
+                            # For now, we'll raise an error to catch this case
+                            raise ValueError(
+                                f"Layer {idx}: KV cache length {kv_seq_len} < current sequence length {current_seq_len}. "
+                                f"This should not happen in normal SDTP flow."
+                            )
+                        layer_past = (key, value)
 
-            # Store (possibly pruned) KV cache for this layer
+            # Store (possibly pruned or adjusted) KV cache for this layer
             past_key_values[idx] = layer_past
 
         # Final norm + LM head
