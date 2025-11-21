@@ -119,8 +119,9 @@ def run_end2end_baseline(
         model_inputs = model.prepare_inputs_for_generation(
             input_ids=input_ids,
             attention_mask=attention_mask,
+            use_cache=True,
         )
-        outputs = model(**model_inputs, use_cache=True)
+        outputs = model(**model_inputs)
         past_key_values = outputs.past_key_values
         
         if device.type == "cuda":
