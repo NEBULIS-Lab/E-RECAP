@@ -192,7 +192,11 @@ class SDTPModel(nn.Module):
         past_key_values = None
 
         for idx, block in enumerate(self.model.model.layers):
-            pruning_module = self.pruning_modules.get(str(idx), None)
+            # ModuleDict doesn't support .get() in all PyTorch versions, use try-except instead
+            try:
+                pruning_module = self.pruning_modules[str(idx)]
+            except KeyError:
+                pruning_module = None
 
             if pruning_module is not None:
                 pruning_module = pruning_module.to(self.device)
@@ -301,7 +305,11 @@ class SDTPModel(nn.Module):
             layer_past = block_outputs[1]  # (key, value)
 
             # Optional pruning module
-            pruning_module = self.pruning_modules.get(str(idx), None)
+            # ModuleDict doesn't support .get() in all PyTorch versions, use try-except instead
+            try:
+                pruning_module = self.pruning_modules[str(idx)]
+            except KeyError:
+                pruning_module = None
 
             if pruning_module is not None and not self.training:
                 pruning_module = pruning_module.to(device)
