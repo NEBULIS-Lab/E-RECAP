@@ -342,22 +342,43 @@ def prefill_with_pruning(
     }
 
     for layer_idx, layer in enumerate(model.model.layers):
+        # CRITICAL: Check sequence length before layer forward
+        current_seq_len = hidden_states.size(1)
+        if current_seq_len == 0:
+            raise ValueError(
+                f"prefill_with_pruning: hidden_states sequence length is 0 at layer {layer_idx}! "
+                f"This should never happen after apply_token_pruning fixes."
+            )
+        
         # Build position ids: [1, seq_len]
         position_ids = torch.arange(
             0,
-            hidden_states.size(1),
+            current_seq_len,
             dtype=torch.long,
             device=hidden_states.device,
         ).unsqueeze(0)
 
         # Use internal causal mask: attention_mask=None
-        outputs = layer(
-            hidden_states,
-            attention_mask=None,
-            position_ids=position_ids,
-            use_cache=False,
-        )
-        hidden_states = outputs[0]
+        try:
+            outputs = layer(
+                hidden_states,
+                attention_mask=None,
+                position_ids=position_ids,
+                use_cache=False,
+            )
+            hidden_states = outputs[0]
+        except Exception as e:
+            raise RuntimeError(
+                f"prefill_with_pruning: Layer {layer_idx} forward failed. "
+                f"Input seq_len={current_seq_len}, error={e}"
+            ) from e
+        
+        # CRITICAL: Check sequence length after layer forward
+        if hidden_states.size(1) == 0:
+            raise ValueError(
+                f"prefill_with_pruning: Layer {layer_idx} output sequence length is 0! "
+                f"Input was {current_seq_len}."
+            )
 
         # Apply token pruning on selected layers
         if layer_idx in prune_layers:
@@ -373,6 +394,15 @@ def prefill_with_pruning(
                 layer_idx=layer_idx,
                 debug_log=True,  # Enable debug logging
             )
+            
+            # CRITICAL: Verify pruning didn't produce zero-length output
+            if hidden_states.size(1) == 0:
+                raise ValueError(
+                    f"prefill_with_pruning: After pruning at layer {layer_idx}, "
+                    f"hidden_states sequence length is 0! "
+                    f"Input was {current_seq_len}, stats={stats}"
+                )
+            
             pruning_stats["total_pruning_steps"] += 1
             pruning_stats["total_tokens_pruned"] += stats["tokens_pruned"]
             pruning_stats["final_length"] = stats["tokens_kept"]
@@ -381,9 +411,24 @@ def prefill_with_pruning(
                 **stats
             })
 
+    # CRITICAL: Final check before output
+    if hidden_states.size(1) == 0:
+        raise ValueError(
+            f"prefill_with_pruning: Final hidden_states sequence length is 0! "
+            f"Original length was {original_length}, final_length in stats={pruning_stats.get('final_length')}"
+        )
+    
     # Final RMSNorm + LM head to get logits
     hidden_states = model.model.norm(hidden_states)
     logits = model.lm_head(hidden_states)
+    
+    # CRITICAL: Verify logits shape
+    if logits.size(1) == 0:
+        raise ValueError(
+            f"prefill_with_pruning: Output logits sequence length is 0! "
+            f"hidden_states shape was {hidden_states.shape}"
+        )
+    
     return logits, pruning_stats
 
 
