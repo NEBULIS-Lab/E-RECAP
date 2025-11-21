@@ -589,34 +589,42 @@ def profile_lengths(lengths, config_name: str = "keep07", save_json: bool = True
                 if device.type == "cuda":
                     torch.cuda.reset_peak_memory_stats()
                 
-                # Baseline End2End
-                baseline_result = run_end2end_latency(
-                    model, tokenizer, input_ids, attention_mask,
-                    use_sdtp=False,
-                )
-                baseline_prefill_t = baseline_result["prefill_time"]
-                baseline_decode_t = baseline_result["decode_time"]
-                baseline_total_t = baseline_result["total_time"]
-                baseline_kv_lens = baseline_result["kv_lens_after_prefill"]
+                # Baseline End2End - with error handling
+                try:
+                    baseline_result = run_end2end_latency(
+                        model, tokenizer, input_ids, attention_mask,
+                        use_sdtp=False,
+                    )
+                    baseline_prefill_t = baseline_result["prefill_time"]
+                    baseline_decode_t = baseline_result["decode_time"]
+                    baseline_total_t = baseline_result["total_time"]
+                    baseline_kv_lens = baseline_result["kv_lens_after_prefill"]
+                except Exception as e:
+                    print(f"[Length {L}] Baseline End2End failed: {e}")
+                    raise  # Re-raise to be caught by outer try-except
                 
                 baseline_memory = 0.0
                 if device.type == "cuda":
                     baseline_memory = torch.cuda.max_memory_allocated() / (1024**3)  # GB
                     torch.cuda.reset_peak_memory_stats()
                 
-                # SDTP End2End
-                sdtp_result = run_end2end_latency(
-                    model, tokenizer, input_ids, attention_mask,
-                    use_sdtp=True,
-                    pruning_modules=pruners,
-                    keep_ratio=config["keep_ratio"],
-                    prune_layers=config["prune_layers"],
-                )
-                sdtp_prefill_t = sdtp_result["prefill_time"]
-                sdtp_decode_t = sdtp_result["decode_time"]
-                sdtp_total_t = sdtp_result["total_time"]
-                sdtp_kv_lens = sdtp_result["kv_lens_after_prefill"]
-                pruning_stats = sdtp_result.get("pruning_stats", {})
+                # SDTP End2End - with error handling
+                try:
+                    sdtp_result = run_end2end_latency(
+                        model, tokenizer, input_ids, attention_mask,
+                        use_sdtp=True,
+                        pruning_modules=pruners,
+                        keep_ratio=config["keep_ratio"],
+                        prune_layers=config["prune_layers"],
+                    )
+                    sdtp_prefill_t = sdtp_result["prefill_time"]
+                    sdtp_decode_t = sdtp_result["decode_time"]
+                    sdtp_total_t = sdtp_result["total_time"]
+                    sdtp_kv_lens = sdtp_result["kv_lens_after_prefill"]
+                    pruning_stats = sdtp_result.get("pruning_stats", {})
+                except Exception as e:
+                    print(f"[Length {L}] SDTP End2End failed: {e}")
+                    raise  # Re-raise to be caught by outer try-except
                 
                 sdtp_memory = 0.0
                 if device.type == "cuda":
