@@ -25,7 +25,7 @@
       "cumulative_keep_ratio": 0.05764800999999997
     },
     "run_info": {
-      "timestamp": "2025-11-21T23:08:24",
+      "timestamp": "2025-11-22T00:47:18",
       "script": "inference_sdtp.py",
       "mode": "profile",
       "benchmark_mode": "end2end"
@@ -34,9 +34,9 @@
   "results": {
     "1024": {
       "baseline": {
-        "prefill_latency_seconds": 0.1508273610379547,
-        "decode_latency_seconds": 2.144553810940124,
-        "total_latency_seconds": 2.295381171978079,
+        "prefill_latency_seconds": 0.15531043300870806,
+        "decode_latency_seconds": 2.113687940989621,
+        "total_latency_seconds": 2.268998373998329,
         "memory_gb": 15.21665096282959,
         "kv_lens_after_prefill": [
           1024,
@@ -70,10 +70,10 @@
         ]
       },
       "sdtp": {
-        "prefill_latency_seconds": 0.1153619330143556,
-        "decode_latency_seconds": 2.2929757540114224,
-        "total_latency_seconds": 2.408337687025778,
-        "memory_gb": 14.49390459060669,
+        "prefill_latency_seconds": 0.10028491204138845,
+        "decode_latency_seconds": 1.3927349260193296,
+        "total_latency_seconds": 1.493019838060718,
+        "memory_gb": 14.416715145111084,
         "kv_lens_after_prefill": [
           57,
           57,
@@ -110,18 +110,18 @@
         "pruning_steps": 8
       },
       "speedup": {
-        "prefill": 1.3074274771313497,
-        "decode": 0.935271036856084,
-        "total": 0.953097725598773
+        "prefill": 1.548691920322073,
+        "decode": 1.517652714455073,
+        "total": 1.519737592332014
       },
       "kv_reduction": 0.9443359375,
-      "memory_reduction": 0.04749707238395531
+      "memory_reduction": 0.052569768451188485
     },
     "2048": {
       "baseline": {
-        "prefill_latency_seconds": 0.3216392719768919,
-        "decode_latency_seconds": 2.591379905003123,
-        "total_latency_seconds": 2.913019176980015,
+        "prefill_latency_seconds": 0.316790689015761,
+        "decode_latency_seconds": 2.601040594978258,
+        "total_latency_seconds": 2.917831283994019,
         "memory_gb": 16.15322780609131,
         "kv_lens_after_prefill": [
           2048,
@@ -155,10 +155,10 @@
         ]
       },
       "sdtp": {
-        "prefill_latency_seconds": 0.14405218901811168,
-        "decode_latency_seconds": 2.940603254013695,
-        "total_latency_seconds": 3.0846554430318065,
-        "memory_gb": 14.704986095428467,
+        "prefill_latency_seconds": 0.14570832095341757,
+        "decode_latency_seconds": 0.38287426898023114,
+        "total_latency_seconds": 0.5285825899336487,
+        "memory_gb": 14.541882991790771,
         "kv_lens_after_prefill": [
           117,
           117,
@@ -195,18 +195,18 @@
         "pruning_steps": 8
       },
       "speedup": {
-        "prefill": 2.232796836821773,
-        "decode": 0.8812409159467843,
-        "total": 0.9443580428279225
+        "prefill": 2.174142745883661,
+        "decode": 6.79345886028334,
+        "total": 5.520104785063551
       },
       "kv_reduction": 0.94287109375,
-      "memory_reduction": 0.08965649021037866
+      "memory_reduction": 0.09975373551612429
     },
     "4096": {
       "baseline": {
-        "prefill_latency_seconds": 0.7537521520280279,
-        "decode_latency_seconds": 0.2626966789830476,
-        "total_latency_seconds": 1.0164488310110755,
+        "prefill_latency_seconds": 0.7538274539983831,
+        "decode_latency_seconds": 0.24978248600382358,
+        "total_latency_seconds": 1.0036099400022067,
         "memory_gb": 18.011229038238525,
         "kv_lens_after_prefill": [
           4096,
@@ -240,10 +240,10 @@
         ]
       },
       "sdtp": {
-        "prefill_latency_seconds": 0.3068778419983573,
-        "decode_latency_seconds": 1.026657205016818,
-        "total_latency_seconds": 1.3335350470151752,
-        "memory_gb": 15.114901065826416,
+        "prefill_latency_seconds": 0.31179045396856964,
+        "decode_latency_seconds": 1.2206197509658523,
+        "total_latency_seconds": 1.532410204934422,
+        "memory_gb": 14.799771785736084,
         "kv_lens_after_prefill": [
           235,
           235,
@@ -280,18 +280,18 @@
         "pruning_steps": 8
       },
       "speedup": {
-        "prefill": 2.4561960782820633,
-        "decode": 0.2558757467432806,
-        "total": 0.762221310408131
+        "prefill": 2.4177374400127514,
+        "decode": 0.20463578916052738,
+        "total": 0.6549225114597532
       },
       "kv_reduction": 0.942626953125,
-      "memory_reduction": 0.16080679259938868
+      "memory_reduction": 0.17830306003462593
     },
     "8192": {
       "baseline": {
-        "prefill_latency_seconds": 1.3879635509802029,
-        "decode_latency_seconds": 3.2740307659842074,
-        "total_latency_seconds": 4.66199431696441,
+        "prefill_latency_seconds": 1.3904958000057377,
+        "decode_latency_seconds": 3.289886443002615,
+        "total_latency_seconds": 4.680382243008353,
         "memory_gb": 21.737975120544434,
         "kv_lens_after_prefill": [
           8192,
@@ -325,10 +325,10 @@
         ]
       },
       "sdtp": {
-        "prefill_latency_seconds": 0.54167943703942,
-        "decode_latency_seconds": 4.706273110001348,
-        "total_latency_seconds": 5.247952547040768,
-        "memory_gb": 15.946577548980713,
+        "prefill_latency_seconds": 0.5465263180085458,
+        "decode_latency_seconds": 0.358910390001256,
+        "total_latency_seconds": 0.9054367080098018,
+        "memory_gb": 15.315549373626709,
         "kv_lens_after_prefill": [
           471,
           471,
@@ -365,18 +365,18 @@
         "pruning_steps": 8
       },
       "speedup": {
-        "prefill": 2.5623338381944074,
-        "decode": 0.6956737718910813,
-        "total": 0.8883453642493834
+        "prefill": 2.5442430751962344,
+        "decode": 9.166317093776811,
+        "total": 5.169198687886293
       },
       "kv_reduction": 0.9425048828125,
-      "memory_reduction": 0.2664184469550848
+      "memory_reduction": 0.2954472857431844
     },
     "16384": {
       "baseline": {
-        "prefill_latency_seconds": 3.596443217014894,
-        "decode_latency_seconds": 4.570648607972544,
-        "total_latency_seconds": 8.167091824987438,
+        "prefill_latency_seconds": 3.5911321060266346,
+        "decode_latency_seconds": 4.5641895339940675,
+        "total_latency_seconds": 8.155321640020702,
         "memory_gb": 29.191466331481934,
         "kv_lens_after_prefill": [
           16384,
@@ -410,10 +410,10 @@
         ]
       },
       "sdtp": {
-        "prefill_latency_seconds": 1.3080250159837306,
-        "decode_latency_seconds": 8.219701233960222,
-        "total_latency_seconds": 9.527726249943953,
-        "memory_gb": 17.607000827789307,
+        "prefill_latency_seconds": 1.3214151349966414,
+        "decode_latency_seconds": 0.3605421769898385,
+        "total_latency_seconds": 1.68195731198648,
+        "memory_gb": 16.34710454940796,
         "kv_lens_after_prefill": [
           943,
           943,
@@ -450,12 +450,97 @@
         "pruning_steps": 8
       },
       "speedup": {
-        "prefill": 2.749521739314829,
-        "decode": 0.556060187332432,
-        "total": 0.8571921160135642
+        "prefill": 2.717641118917381,
+        "decode": 12.659238849946547,
+        "total": 4.848709049808665
       },
       "kv_reduction": 0.94244384765625,
-      "memory_reduction": 0.3968442479780196
+      "memory_reduction": 0.4400039941885961
+    },
+    "32768": {
+      "baseline": {
+        "prefill_latency_seconds": 8.193839517014567,
+        "decode_latency_seconds": 6.582153387018479,
+        "total_latency_seconds": 14.775992904033046,
+        "memory_gb": 44.097960472106934,
+        "kv_lens_after_prefill": [
+          32768,
+          32768,
+          32768,
+          32768,
+          32768,
+          32768,
+          32768,
+          32768,
+          32768,
+          32768,
+          32768,
+          32768,
+          32768,
+          32768,
+          32768,
+          32768,
+          32768,
+          32768,
+          32768,
+          32768,
+          32768,
+          32768,
+          32768,
+          32768,
+          32768,
+          32768,
+          32768,
+          32768
+        ]
+      },
+      "sdtp": {
+        "prefill_latency_seconds": 2.902900449989829,
+        "decode_latency_seconds": 2.9205613610101864,
+        "total_latency_seconds": 5.823461811000016,
+        "memory_gb": 18.41021490097046,
+        "kv_lens_after_prefill": [
+          1887,
+          1887,
+          1887,
+          1887,
+          1887,
+          1887,
+          1887,
+          1887,
+          1887,
+          1887,
+          1887,
+          1887,
+          1887,
+          1887,
+          1887,
+          1887,
+          1887,
+          1887,
+          1887,
+          1887,
+          1887,
+          1887,
+          1887,
+          1887,
+          1887,
+          1887,
+          1887,
+          1887
+        ],
+        "tokens_kept": 1887,
+        "tokens_pruned": 30881,
+        "pruning_ratio": 0.942413330078125,
+        "pruning_steps": 8
+      },
+      "speedup": {
+        "prefill": 2.822638825607428,
+        "decode": 2.253728846409785,
+        "total": 2.5373211645558444
+      },
+      "kv_reduction": 0.942413330078125,
+      "memory_reduction": 0.5825155017630491
     }
   },
   "summary": {
@@ -464,9 +549,10 @@
       2048,
       4096,
       8192,
-      16384
+      16384,
+      32768
     ],
-    "avg_speedup": 0.8810429118195549,
-    "avg_memory_reduction": 0.19224461002536541
+    "avg_speedup": 3.3749989651843535,
+    "avg_memory_reduction": 0.27476555761612803
   }
 }
