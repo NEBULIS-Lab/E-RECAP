@@ -139,11 +139,10 @@ class ModelWrapper:
         with torch.no_grad():
             if self.mode == "sdtp" and self.pruning_modules is not None:
                 # SDTP mode: use prefill_with_pruning for prefill phase
-                # Note: This applies pruning during prefill, but decode uses standard generation
-                # For full SDTP, decode phase should also use pruning (future enhancement)
+                # Then use pruned input_ids for decode phase to benefit from reduced KV cache
                 
-                # Prefill with pruning
-                logits, pruning_stats = prefill_with_pruning(
+                # Prefill with pruning and request pruned input_ids
+                result = prefill_with_pruning(
                     model=self.model,
                     input_ids=input_ids,
                     attention_mask=attention_mask,
@@ -152,40 +151,41 @@ class ModelWrapper:
                     prune_layers=PRUNE_LAYERS,
                     min_head_tokens=MIN_HEAD_TOKENS,
                     min_tail_ratio=MIN_TAIL_RATIO,
+                    return_pruned_input_ids=True,
                 )
+                
+                # Handle both old (2-tuple) and new (3-tuple) return formats for backward compatibility
+                if len(result) == 3:
+                    logits, pruning_stats, pruned_input_ids = result
+                else:
+                    logits, pruning_stats = result
+                    pruned_input_ids = None
                 
                 # Ensure logits are on the correct device
                 logits = logits.to(self.device)
                 
-                # Use the prefill logits to get the first new token
-                # Then continue with standard generation for remaining tokens
-                # This is a simplified approach - full SDTP would also prune during decode
-                next_token_logits = logits[:, -1, :]
-                next_token_id = torch.argmax(next_token_logits, dim=-1, keepdim=True)
+                # Use pruned input_ids for decode phase if available, otherwise fall back to original
+                # This ensures decode benefits from reduced KV cache size
+                decode_input_ids = pruned_input_ids if pruned_input_ids is not None else input_ids
+                decode_input_ids = decode_input_ids.to(self.device)
+                decode_attention_mask = torch.ones_like(decode_input_ids, dtype=torch.long, device=self.device)
                 
-                # Ensure next_token_id is on the correct device before cat
-                next_token_id = next_token_id.to(self.device)
-                input_ids = input_ids.to(self.device)
-                
-                # Continue generation with standard method
-                # Start from the last token of input + first generated token
-                generated_ids = torch.cat([input_ids, next_token_id], dim=-1)
-                
-                # Generate remaining tokens
-                if self.max_new_tokens > 1:
-                    remaining_outputs = self.model.generate(
-                        input_ids=generated_ids,
-                        max_new_tokens=self.max_new_tokens - 1,
-                        do_sample=(self.temperature > 0),
-                        temperature=self.temperature if self.temperature > 0 else 1.0,
-                        top_p=self.top_p,
-                        eos_token_id=self.tokenizer.eos_token_id,
-                        pad_token_id=self.tokenizer.pad_token_id,
-                    )
-                    generated_ids = remaining_outputs
+                # Generate tokens starting from pruned sequence
+                # This benefits from the reduced KV cache size from prefill pruning
+                output_ids = self.model.generate(
+                    input_ids=decode_input_ids,
+                    attention_mask=decode_attention_mask,
+                    max_new_tokens=self.max_new_tokens,
+                    do_sample=(self.temperature > 0),
+                    temperature=self.temperature if self.temperature > 0 else 1.0,
+                    top_p=self.top_p,
+                    eos_token_id=self.tokenizer.eos_token_id,
+                    pad_token_id=self.tokenizer.pad_token_id,
+                )
                 
                 # Decode only the newly generated tokens
-                new_tokens = generated_ids[:, input_ids.shape[-1]:]
+                # Use decode_input_ids length (pruned) instead of original input_ids length
+                new_tokens = output_ids[:, decode_input_ids.shape[-1]:]
                 out = self.tokenizer.batch_decode(
                     new_tokens,
                     skip_special_tokens=True,

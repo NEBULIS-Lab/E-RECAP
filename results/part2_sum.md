@@ -351,7 +351,7 @@ IMPLEMENTATION_VS_PAPER_COMPARISON.md。我将对缺失的实验做补充。
 
 
 最新结果
-user2@bld-Rack-Server:/data/private/user2/workspace/SDTP$ bash scripts/run_inference.sh profile end2end
+user2@bld-Rack-Server:/data/private/user2/workspace/SDTP$  bash scripts/run_inference.sh profile end2end
 ==========================================
 [Inference] Running all configurations
 Benchmark Mode: end2end
@@ -365,7 +365,7 @@ Benchmark Mode: end2end
   Prune layers: [4, 7, 10, 13, 16, 19, 22, 25]
   Keep ratio: 0.9
   Cumulative keep ratio: 0.4305
-Loading checkpoint shards: 100%|███████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 4/4 [00:02<00:00,  1.96it/s]
+Loading checkpoint shards: 100%|███████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 4/4 [00:01<00:00,  3.48it/s]
 Profiling lengths: [1024, 2048, 4096, 8192, 16384, 32768]
 /home/user2/.local/lib/python3.10/site-packages/transformers/generation/configuration_utils.py:601: UserWarning: `do_sample` is set to `False`. However, `temperature` is set to `0.7` -- this flag is only used in sample-based generation modes. You should set `do_sample=True` or unset `temperature`.
   warnings.warn(
@@ -384,9 +384,9 @@ The attention layers in this model are transitioning from computing the RoPE emb
 [PRUNE] Layer 22: seq_len=542, keep_k=487, kept=487, pruned=55, ratio=10.15%
 [PRUNE] Layer 25: seq_len=487, keep_k=438, kept=438, pruned=49, ratio=10.06%
 [Length 1024] End2End Results:
-  Baseline: prefill=0.1214s, decode=2.1409s, total=2.2622s
-  SDTP:     prefill=0.1359s, decode=2.2972s, total=2.4331s
-  Speedup:  prefill=0.89x, decode=0.93x, total=0.93x
+  Baseline: prefill=0.1309s, decode=2.1518s, total=2.2827s
+  SDTP:     prefill=0.1393s, decode=2.5570s, total=2.6964s
+  Speedup:  prefill=0.94x, decode=0.84x, total=0.85x
   KV Cache: baseline=1024, sdtp=438, reduction=57.23%
 [PRUNE] Layer 4: seq_len=2048, keep_k=1843, kept=1843, pruned=205, ratio=10.01%
 [PRUNE] Layer 7: seq_len=1843, keep_k=1658, kept=1658, pruned=185, ratio=10.04%
@@ -397,9 +397,9 @@ The attention layers in this model are transitioning from computing the RoPE emb
 [PRUNE] Layer 22: seq_len=1086, keep_k=977, kept=977, pruned=109, ratio=10.04%
 [PRUNE] Layer 25: seq_len=977, keep_k=879, kept=879, pruned=98, ratio=10.03%
 [Length 2048] End2End Results:
-  Baseline: prefill=0.2752s, decode=2.6058s, total=2.8810s
-  SDTP:     prefill=0.2148s, decode=2.9079s, total=3.1226s
-  Speedup:  prefill=1.28x, decode=0.90x, total=0.92x
+  Baseline: prefill=0.2760s, decode=2.6000s, total=2.8760s
+  SDTP:     prefill=0.2166s, decode=1.8247s, total=2.0413s
+  Speedup:  prefill=1.27x, decode=1.42x, total=1.41x
   KV Cache: baseline=2048, sdtp=879, reduction=57.08%
 [PRUNE] Layer 4: seq_len=4096, keep_k=3686, kept=3686, pruned=410, ratio=10.01%
 [PRUNE] Layer 7: seq_len=3686, keep_k=3317, kept=3317, pruned=369, ratio=10.01%
@@ -410,9 +410,9 @@ The attention layers in this model are transitioning from computing the RoPE emb
 [PRUNE] Layer 22: seq_len=2175, keep_k=1957, kept=1957, pruned=218, ratio=10.02%
 [PRUNE] Layer 25: seq_len=1957, keep_k=1761, kept=1761, pruned=196, ratio=10.02%
 [Length 4096] End2End Results:
-  Baseline: prefill=0.6677s, decode=0.2468s, total=0.9145s
-  SDTP:     prefill=0.4722s, decode=0.9662s, total=1.4384s
-  Speedup:  prefill=1.41x, decode=0.26x, total=0.64x
+  Baseline: prefill=0.6596s, decode=0.2411s, total=0.9007s
+  SDTP:     prefill=0.4747s, decode=2.8474s, total=3.3221s
+  Speedup:  prefill=1.39x, decode=0.08x, total=0.27x
   KV Cache: baseline=4096, sdtp=1761, reduction=57.01%
 [PRUNE] Layer 4: seq_len=8192, keep_k=7372, kept=7372, pruned=820, ratio=10.01%
 [PRUNE] Layer 7: seq_len=7372, keep_k=6634, kept=6634, pruned=738, ratio=10.01%
@@ -423,9 +423,9 @@ The attention layers in this model are transitioning from computing the RoPE emb
 [PRUNE] Layer 22: seq_len=4351, keep_k=3915, kept=3915, pruned=436, ratio=10.02%
 [PRUNE] Layer 25: seq_len=3915, keep_k=3523, kept=3523, pruned=392, ratio=10.01%
 [Length 8192] End2End Results:
-  Baseline: prefill=1.2822s, decode=3.2726s, total=4.5548s
-  SDTP:     prefill=0.9506s, decode=4.6000s, total=5.5506s
-  Speedup:  prefill=1.35x, decode=0.71x, total=0.82x
+  Baseline: prefill=1.2648s, decode=3.2982s, total=4.5630s
+  SDTP:     prefill=0.9561s, decode=3.3350s, total=4.2912s
+  Speedup:  prefill=1.32x, decode=0.99x, total=1.06x
   KV Cache: baseline=8192, sdtp=3523, reduction=56.99%
 [PRUNE] Layer 4: seq_len=16384, keep_k=14745, kept=14745, pruned=1639, ratio=10.00%
 [PRUNE] Layer 7: seq_len=14745, keep_k=13270, kept=13270, pruned=1475, ratio=10.00%
@@ -436,13 +436,24 @@ The attention layers in this model are transitioning from computing the RoPE emb
 [PRUNE] Layer 22: seq_len=8705, keep_k=7834, kept=7834, pruned=871, ratio=10.01%
 [PRUNE] Layer 25: seq_len=7834, keep_k=7050, kept=7050, pruned=784, ratio=10.01%
 [Length 16384] End2End Results:
-  Baseline: prefill=3.2921s, decode=4.5302s, total=7.8223s
-  SDTP:     prefill=2.1967s, decode=7.9088s, total=10.1055s
-  Speedup:  prefill=1.50x, decode=0.57x, total=0.77x
+  Baseline: prefill=3.2827s, decode=4.5325s, total=7.8152s
+  SDTP:     prefill=2.2015s, decode=4.4529s, total=6.6544s
+  Speedup:  prefill=1.49x, decode=1.02x, total=1.17x
   KV Cache: baseline=16384, sdtp=7050, reduction=56.97%
 This is a friendly reminder - the current text generation call will exceed the model's predefined maximum length (32768). Depending on the model, you may observe exceptions, performance degradation, or nothing at all.
-[Length 32768] Baseline End2End failed: CUDA out of memory. Tried to allocate 18.56 GiB. GPU 0 has a total capacity of 47.37 GiB of which 17.60 GiB is free. Process 3606394 has 2.27 GiB memory in use. Including non-PyTorch memory, this process has 27.45 GiB memory in use. Of the allocated memory 25.54 GiB is allocated by PyTorch, and 1.52 GiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True to avoid fragmentation.  See documentation for Memory Management  (https://pytorch.org/docs/stable/notes/cuda.html#environment-variables)
-[Length 32768] OOM on GPU, skipping this length.
+[PRUNE] Layer 4: seq_len=32768, keep_k=29491, kept=29491, pruned=3277, ratio=10.00%
+[PRUNE] Layer 7: seq_len=29491, keep_k=26541, kept=26541, pruned=2950, ratio=10.00%
+[PRUNE] Layer 10: seq_len=26541, keep_k=23886, kept=23886, pruned=2655, ratio=10.00%
+[PRUNE] Layer 13: seq_len=23886, keep_k=21497, kept=21497, pruned=2389, ratio=10.00%
+[PRUNE] Layer 16: seq_len=21497, keep_k=19347, kept=19347, pruned=2150, ratio=10.00%
+[PRUNE] Layer 19: seq_len=19347, keep_k=17412, kept=17412, pruned=1935, ratio=10.00%
+[PRUNE] Layer 22: seq_len=17412, keep_k=15670, kept=15670, pruned=1742, ratio=10.00%
+[PRUNE] Layer 25: seq_len=15670, keep_k=14103, kept=14103, pruned=1567, ratio=10.00%
+[Length 32768] End2End Results:
+  Baseline: prefill=7.7054s, decode=6.5097s, total=14.2151s
+  SDTP:     prefill=5.0132s, decode=7.1996s, total=12.2128s
+  Speedup:  prefill=1.54x, decode=0.90x, total=1.16x
+  KV Cache: baseline=32768, sdtp=14103, reduction=56.96%
 [OK] Results saved to results/latency_results_keep09.json
 [OK] Baseline results saved to results/latency_baseline_keep09.json
 [OK] SDTP results saved to results/latency_sdtp_keep09.json
@@ -455,7 +466,7 @@ This is a friendly reminder - the current text generation call will exceed the m
   Prune layers: [4, 7, 10, 13, 16, 19, 22, 25]
   Keep ratio: 0.8
   Cumulative keep ratio: 0.1678
-Loading checkpoint shards: 100%|███████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 4/4 [00:01<00:00,  3.46it/s]
+Loading checkpoint shards: 100%|███████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 4/4 [00:01<00:00,  3.44it/s]
 Profiling lengths: [1024, 2048, 4096, 8192, 16384, 32768]
 /home/user2/.local/lib/python3.10/site-packages/transformers/generation/configuration_utils.py:601: UserWarning: `do_sample` is set to `False`. However, `temperature` is set to `0.7` -- this flag is only used in sample-based generation modes. You should set `do_sample=True` or unset `temperature`.
   warnings.warn(
@@ -474,9 +485,9 @@ The attention layers in this model are transitioning from computing the RoPE emb
 [PRUNE] Layer 22: seq_len=268, keep_k=214, kept=214, pruned=54, ratio=20.15%
 [PRUNE] Layer 25: seq_len=214, keep_k=171, kept=171, pruned=43, ratio=20.09%
 [Length 1024] End2End Results:
-  Baseline: prefill=0.1279s, decode=2.1617s, total=2.2896s
-  SDTP:     prefill=0.1270s, decode=2.2847s, total=2.4117s
-  Speedup:  prefill=1.01x, decode=0.95x, total=0.95x
+  Baseline: prefill=0.1259s, decode=2.1678s, total=2.2937s
+  SDTP:     prefill=0.1369s, decode=2.5026s, total=2.6395s
+  Speedup:  prefill=0.92x, decode=0.87x, total=0.87x
   KV Cache: baseline=1024, sdtp=171, reduction=83.30%
 [PRUNE] Layer 4: seq_len=2048, keep_k=1638, kept=1638, pruned=410, ratio=20.02%
 [PRUNE] Layer 7: seq_len=1638, keep_k=1310, kept=1310, pruned=328, ratio=20.02%
@@ -487,9 +498,9 @@ The attention layers in this model are transitioning from computing the RoPE emb
 [PRUNE] Layer 22: seq_len=536, keep_k=428, kept=428, pruned=108, ratio=20.15%
 [PRUNE] Layer 25: seq_len=428, keep_k=342, kept=342, pruned=86, ratio=20.09%
 [Length 2048] End2End Results:
-  Baseline: prefill=0.3123s, decode=2.5707s, total=2.8830s
-  SDTP:     prefill=0.1785s, decode=2.9279s, total=3.1064s
-  Speedup:  prefill=1.75x, decode=0.88x, total=0.93x
+  Baseline: prefill=0.2989s, decode=2.5838s, total=2.8827s
+  SDTP:     prefill=0.1850s, decode=2.5600s, total=2.7450s
+  Speedup:  prefill=1.62x, decode=1.01x, total=1.05x
   KV Cache: baseline=2048, sdtp=342, reduction=83.30%
 [PRUNE] Layer 4: seq_len=4096, keep_k=3276, kept=3276, pruned=820, ratio=20.02%
 [PRUNE] Layer 7: seq_len=3276, keep_k=2620, kept=2620, pruned=656, ratio=20.02%
@@ -500,9 +511,9 @@ The attention layers in this model are transitioning from computing the RoPE emb
 [PRUNE] Layer 22: seq_len=1072, keep_k=857, kept=857, pruned=215, ratio=20.06%
 [PRUNE] Layer 25: seq_len=857, keep_k=685, kept=685, pruned=172, ratio=20.07%
 [Length 4096] End2End Results:
-  Baseline: prefill=0.7293s, decode=0.2709s, total=1.0002s
-  SDTP:     prefill=0.3751s, decode=1.0163s, total=1.3913s
-  Speedup:  prefill=1.94x, decode=0.27x, total=0.72x
+  Baseline: prefill=0.7303s, decode=0.2506s, total=0.9809s
+  SDTP:     prefill=0.3790s, decode=2.6229s, total=3.0019s
+  Speedup:  prefill=1.93x, decode=0.10x, total=0.33x
   KV Cache: baseline=4096, sdtp=685, reduction=83.28%
 [PRUNE] Layer 4: seq_len=8192, keep_k=6553, kept=6553, pruned=1639, ratio=20.01%
 [PRUNE] Layer 7: seq_len=6553, keep_k=5242, kept=5242, pruned=1311, ratio=20.01%
@@ -513,9 +524,9 @@ The attention layers in this model are transitioning from computing the RoPE emb
 [PRUNE] Layer 22: seq_len=2146, keep_k=1716, kept=1716, pruned=430, ratio=20.04%
 [PRUNE] Layer 25: seq_len=1716, keep_k=1372, kept=1372, pruned=344, ratio=20.05%
 [Length 8192] End2End Results:
-  Baseline: prefill=1.3554s, decode=3.2874s, total=4.6429s
-  SDTP:     prefill=0.7128s, decode=4.6745s, total=5.3874s
-  Speedup:  prefill=1.90x, decode=0.70x, total=0.86x
+  Baseline: prefill=1.3620s, decode=3.2932s, total=4.6553s
+  SDTP:     prefill=0.7230s, decode=2.7792s, total=3.5021s
+  Speedup:  prefill=1.88x, decode=1.18x, total=1.33x
   KV Cache: baseline=8192, sdtp=1372, reduction=83.25%
 [PRUNE] Layer 4: seq_len=16384, keep_k=13107, kept=13107, pruned=3277, ratio=20.00%
 [PRUNE] Layer 7: seq_len=13107, keep_k=10485, kept=10485, pruned=2622, ratio=20.00%
@@ -526,13 +537,24 @@ The attention layers in this model are transitioning from computing the RoPE emb
 [PRUNE] Layer 22: seq_len=4294, keep_k=3435, kept=3435, pruned=859, ratio=20.00%
 [PRUNE] Layer 25: seq_len=3435, keep_k=2748, kept=2748, pruned=687, ratio=20.00%
 [Length 16384] End2End Results:
-  Baseline: prefill=3.5237s, decode=4.5569s, total=8.0807s
-  SDTP:     prefill=1.6137s, decode=8.1403s, total=9.7540s
-  Speedup:  prefill=2.18x, decode=0.56x, total=0.83x
+  Baseline: prefill=3.5332s, decode=4.5548s, total=8.0879s
+  SDTP:     prefill=1.6170s, decode=0.7167s, total=2.3337s
+  Speedup:  prefill=2.19x, decode=6.36x, total=3.47x
   KV Cache: baseline=16384, sdtp=2748, reduction=83.23%
 This is a friendly reminder - the current text generation call will exceed the model's predefined maximum length (32768). Depending on the model, you may observe exceptions, performance degradation, or nothing at all.
-[Length 32768] Baseline End2End failed: CUDA out of memory. Tried to allocate 18.56 GiB. GPU 0 has a total capacity of 47.37 GiB of which 17.60 GiB is free. Process 3606394 has 2.27 GiB memory in use. Including non-PyTorch memory, this process has 27.45 GiB memory in use. Of the allocated memory 25.54 GiB is allocated by PyTorch, and 1.52 GiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True to avoid fragmentation.  See documentation for Memory Management  (https://pytorch.org/docs/stable/notes/cuda.html#environment-variables)
-[Length 32768] OOM on GPU, skipping this length.
+[PRUNE] Layer 4: seq_len=32768, keep_k=26214, kept=26214, pruned=6554, ratio=20.00%
+[PRUNE] Layer 7: seq_len=26214, keep_k=20971, kept=20971, pruned=5243, ratio=20.00%
+[PRUNE] Layer 10: seq_len=20971, keep_k=16776, kept=16776, pruned=4195, ratio=20.00%
+[PRUNE] Layer 13: seq_len=16776, keep_k=13420, kept=13420, pruned=3356, ratio=20.00%
+[PRUNE] Layer 16: seq_len=13420, keep_k=10736, kept=10736, pruned=2684, ratio=20.00%
+[PRUNE] Layer 19: seq_len=10736, keep_k=8588, kept=8588, pruned=2148, ratio=20.01%
+[PRUNE] Layer 22: seq_len=8588, keep_k=6870, kept=6870, pruned=1718, ratio=20.00%
+[PRUNE] Layer 25: seq_len=6870, keep_k=5496, kept=5496, pruned=1374, ratio=20.00%
+[Length 32768] End2End Results:
+  Baseline: prefill=8.0707s, decode=6.5977s, total=14.6684s
+  SDTP:     prefill=3.7549s, decode=3.9921s, total=7.7469s
+  Speedup:  prefill=2.15x, decode=1.65x, total=1.89x
+  KV Cache: baseline=32768, sdtp=5496, reduction=83.23%
 [OK] Results saved to results/latency_results_keep08.json
 [OK] Baseline results saved to results/latency_baseline_keep08.json
 [OK] SDTP results saved to results/latency_sdtp_keep08.json
@@ -545,7 +567,7 @@ This is a friendly reminder - the current text generation call will exceed the m
   Prune layers: [4, 7, 10, 13, 16, 19, 22, 25]
   Keep ratio: 0.7
   Cumulative keep ratio: 0.0576
-Loading checkpoint shards: 100%|███████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 4/4 [00:01<00:00,  3.36it/s]
+Loading checkpoint shards: 100%|███████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 4/4 [00:01<00:00,  3.50it/s]
 Profiling lengths: [1024, 2048, 4096, 8192, 16384, 32768]
 /home/user2/.local/lib/python3.10/site-packages/transformers/generation/configuration_utils.py:601: UserWarning: `do_sample` is set to `False`. However, `temperature` is set to `0.7` -- this flag is only used in sample-based generation modes. You should set `do_sample=True` or unset `temperature`.
   warnings.warn(
@@ -564,9 +586,9 @@ The attention layers in this model are transitioning from computing the RoPE emb
 [PRUNE] Layer 22: seq_len=118, keep_k=82, kept=82, pruned=36, ratio=30.51%
 [PRUNE] Layer 25: seq_len=82, keep_k=57, kept=57, pruned=25, ratio=30.49%
 [Length 1024] End2End Results:
-  Baseline: prefill=0.1508s, decode=2.1446s, total=2.2954s
-  SDTP:     prefill=0.1154s, decode=2.2930s, total=2.4083s
-  Speedup:  prefill=1.31x, decode=0.94x, total=0.95x
+  Baseline: prefill=0.1315s, decode=2.1656s, total=2.2971s
+  SDTP:     prefill=0.1177s, decode=1.3872s, total=1.5049s
+  Speedup:  prefill=1.12x, decode=1.56x, total=1.53x
   KV Cache: baseline=1024, sdtp=57, reduction=94.43%
 [PRUNE] Layer 4: seq_len=2048, keep_k=1433, kept=1433, pruned=615, ratio=30.03%
 [PRUNE] Layer 7: seq_len=1433, keep_k=1003, kept=1003, pruned=430, ratio=30.01%
@@ -577,9 +599,9 @@ The attention layers in this model are transitioning from computing the RoPE emb
 [PRUNE] Layer 22: seq_len=240, keep_k=168, kept=168, pruned=72, ratio=30.00%
 [PRUNE] Layer 25: seq_len=168, keep_k=117, kept=117, pruned=51, ratio=30.36%
 [Length 2048] End2End Results:
-  Baseline: prefill=0.3216s, decode=2.5914s, total=2.9130s
-  SDTP:     prefill=0.1441s, decode=2.9406s, total=3.0847s
-  Speedup:  prefill=2.23x, decode=0.88x, total=0.94x
+  Baseline: prefill=0.3211s, decode=2.5810s, total=2.9021s
+  SDTP:     prefill=0.1452s, decode=0.3824s, total=0.5275s
+  Speedup:  prefill=2.21x, decode=6.75x, total=5.50x
   KV Cache: baseline=2048, sdtp=117, reduction=94.29%
 [PRUNE] Layer 4: seq_len=4096, keep_k=2867, kept=2867, pruned=1229, ratio=30.00%
 [PRUNE] Layer 7: seq_len=2867, keep_k=2006, kept=2006, pruned=861, ratio=30.03%
@@ -590,9 +612,9 @@ The attention layers in this model are transitioning from computing the RoPE emb
 [PRUNE] Layer 22: seq_len=480, keep_k=336, kept=336, pruned=144, ratio=30.00%
 [PRUNE] Layer 25: seq_len=336, keep_k=235, kept=235, pruned=101, ratio=30.06%
 [Length 4096] End2End Results:
-  Baseline: prefill=0.7538s, decode=0.2627s, total=1.0164s
-  SDTP:     prefill=0.3069s, decode=1.0267s, total=1.3335s
-  Speedup:  prefill=2.46x, decode=0.26x, total=0.76x
+  Baseline: prefill=0.7419s, decode=0.2633s, total=1.0052s
+  SDTP:     prefill=0.3124s, decode=1.2191s, total=1.5315s
+  Speedup:  prefill=2.37x, decode=0.22x, total=0.66x
   KV Cache: baseline=4096, sdtp=235, reduction=94.26%
 [PRUNE] Layer 4: seq_len=8192, keep_k=5734, kept=5734, pruned=2458, ratio=30.00%
 [PRUNE] Layer 7: seq_len=5734, keep_k=4013, kept=4013, pruned=1721, ratio=30.01%
@@ -603,9 +625,9 @@ The attention layers in this model are transitioning from computing the RoPE emb
 [PRUNE] Layer 22: seq_len=963, keep_k=674, kept=674, pruned=289, ratio=30.01%
 [PRUNE] Layer 25: seq_len=674, keep_k=471, kept=471, pruned=203, ratio=30.12%
 [Length 8192] End2End Results:
-  Baseline: prefill=1.3880s, decode=3.2740s, total=4.6620s
-  SDTP:     prefill=0.5417s, decode=4.7063s, total=5.2480s
-  Speedup:  prefill=2.56x, decode=0.70x, total=0.89x
+  Baseline: prefill=1.3901s, decode=3.2879s, total=4.6780s
+  SDTP:     prefill=0.5485s, decode=0.3599s, total=0.9084s
+  Speedup:  prefill=2.53x, decode=9.14x, total=5.15x
   KV Cache: baseline=8192, sdtp=471, reduction=94.25%
 [PRUNE] Layer 4: seq_len=16384, keep_k=11468, kept=11468, pruned=4916, ratio=30.00%
 [PRUNE] Layer 7: seq_len=11468, keep_k=8027, kept=8027, pruned=3441, ratio=30.01%
@@ -616,13 +638,24 @@ The attention layers in this model are transitioning from computing the RoPE emb
 [PRUNE] Layer 22: seq_len=1926, keep_k=1348, kept=1348, pruned=578, ratio=30.01%
 [PRUNE] Layer 25: seq_len=1348, keep_k=943, kept=943, pruned=405, ratio=30.04%
 [Length 16384] End2End Results:
-  Baseline: prefill=3.5964s, decode=4.5706s, total=8.1671s
-  SDTP:     prefill=1.3080s, decode=8.2197s, total=9.5277s
-  Speedup:  prefill=2.75x, decode=0.56x, total=0.86x
+  Baseline: prefill=3.5929s, decode=4.5489s, total=8.1417s
+  SDTP:     prefill=1.3163s, decode=0.3606s, total=1.6769s
+  Speedup:  prefill=2.73x, decode=12.62x, total=4.86x
   KV Cache: baseline=16384, sdtp=943, reduction=94.24%
 This is a friendly reminder - the current text generation call will exceed the model's predefined maximum length (32768). Depending on the model, you may observe exceptions, performance degradation, or nothing at all.
-[Length 32768] Baseline End2End failed: CUDA out of memory. Tried to allocate 18.56 GiB. GPU 0 has a total capacity of 47.37 GiB of which 17.60 GiB is free. Process 3606394 has 2.27 GiB memory in use. Including non-PyTorch memory, this process has 27.45 GiB memory in use. Of the allocated memory 25.54 GiB is allocated by PyTorch, and 1.52 GiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True to avoid fragmentation.  See documentation for Memory Management  (https://pytorch.org/docs/stable/notes/cuda.html#environment-variables)
-[Length 32768] OOM on GPU, skipping this length.
+[PRUNE] Layer 4: seq_len=32768, keep_k=22937, kept=22937, pruned=9831, ratio=30.00%
+[PRUNE] Layer 7: seq_len=22937, keep_k=16055, kept=16055, pruned=6882, ratio=30.00%
+[PRUNE] Layer 10: seq_len=16055, keep_k=11238, kept=11238, pruned=4817, ratio=30.00%
+[PRUNE] Layer 13: seq_len=11238, keep_k=7866, kept=7866, pruned=3372, ratio=30.01%
+[PRUNE] Layer 16: seq_len=7866, keep_k=5506, kept=5506, pruned=2360, ratio=30.00%
+[PRUNE] Layer 19: seq_len=5506, keep_k=3854, kept=3854, pruned=1652, ratio=30.00%
+[PRUNE] Layer 22: seq_len=3854, keep_k=2697, kept=2697, pruned=1157, ratio=30.02%
+[PRUNE] Layer 25: seq_len=2697, keep_k=1887, kept=1887, pruned=810, ratio=30.03%
+[Length 32768] End2End Results:
+  Baseline: prefill=8.1968s, decode=6.5584s, total=14.7552s
+  SDTP:     prefill=2.8968s, decode=2.9200s, total=5.8167s
+  Speedup:  prefill=2.83x, decode=2.25x, total=2.54x
+  KV Cache: baseline=32768, sdtp=1887, reduction=94.24%
 [OK] Results saved to results/latency_results_keep07.json
 [OK] Baseline results saved to results/latency_baseline_keep07.json
 [OK] SDTP results saved to results/latency_sdtp_keep07.json
@@ -630,3 +663,4 @@ This is a friendly reminder - the current text generation call will exceed the m
 ==========================================
 [OK] All configurations completed!
 ==========================================
+user2@bld-Rack-Server:/data/private/user2/workspace/SDTP$ 
