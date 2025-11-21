@@ -360,13 +360,13 @@ def prefill_with_pruning(
 
         # Use internal causal mask: attention_mask=None
         try:
-        outputs = layer(
-            hidden_states,
-            attention_mask=None,
-            position_ids=position_ids,
-            use_cache=False,
-        )
-        hidden_states = outputs[0]
+            outputs = layer(
+                hidden_states,
+                attention_mask=None,
+                position_ids=position_ids,
+                use_cache=False,
+            )
+            hidden_states = outputs[0]
         except Exception as e:
             raise RuntimeError(
                 f"prefill_with_pruning: Layer {layer_idx} forward failed. "
