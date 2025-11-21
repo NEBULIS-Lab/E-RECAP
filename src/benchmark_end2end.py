@@ -235,11 +235,14 @@ def run_end2end_sdtp(
             # Use the last generated token as the next input
             next_input = generated_ids[:, -1:].to(device)  # [batch=1, 1]
 
+            # For Qwen2, do not pass position_ids (HF 4.46+ requires external RoPE)
+            # Let the model handle position_ids internally based on past_key_values
             outputs = model(
                 input_ids=next_input,
                 attention_mask=attn,
                 past_key_values=kv,
                 use_cache=True,
+                position_ids=None,  # Qwen2 handles position_ids internally
             )
             next_logits = outputs.logits[:, -1, :]  # [1, vocab]
             next_token = torch.argmax(next_logits, dim=-1, keepdim=True)  # [1, 1]

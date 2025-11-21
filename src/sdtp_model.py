@@ -130,15 +130,47 @@ class SDTPModel(nn.Module):
         input_shape: Tuple[int, int],
         hidden_states: torch.Tensor,
     ) -> torch.Tensor:
+        """
+        Prepare attention mask for decoder-only models.
+        Compatible with both LLaMA (has _prepare_decoder_attention_mask) and Qwen2 (doesn't).
+        """
         if attention_mask is None:
             attention_mask = torch.ones(input_shape, dtype=torch.long, device=hidden_states.device)
-        return self.model._prepare_decoder_attention_mask(
-            attention_mask,
-            input_shape,
-            hidden_states.dtype,
-            hidden_states.device,
-            past_key_values_length=0,
-        )
+        
+        # Try to use model's _prepare_decoder_attention_mask if available (LLaMA)
+        # Otherwise, create a simple causal mask manually (Qwen2)
+        if hasattr(self.model, '_prepare_decoder_attention_mask'):
+            return self.model._prepare_decoder_attention_mask(
+                attention_mask,
+                input_shape,
+                hidden_states.dtype,
+                hidden_states.device,
+                past_key_values_length=0,
+            )
+        else:
+            # Qwen2: create causal attention mask manually
+            # Create a 4D causal mask: [batch_size, 1, seq_len, seq_len]
+            batch_size, seq_len = input_shape
+            dtype = hidden_states.dtype
+            device = hidden_states.device
+            
+            # Create causal mask: upper triangle is -inf, lower triangle (including diagonal) is 0
+            causal_mask = torch.triu(
+                torch.ones((seq_len, seq_len), dtype=dtype, device=device) * float("-inf"),
+                diagonal=1
+            )
+            # Expand to [batch_size, 1, seq_len, seq_len]
+            causal_mask = causal_mask.unsqueeze(0).unsqueeze(0).expand(batch_size, 1, -1, -1)
+            
+            # Apply attention_mask to mask out padding tokens
+            if attention_mask.dim() == 2:
+                # attention_mask: [batch_size, seq_len]
+                # Expand to [batch_size, 1, 1, seq_len] for broadcasting
+                attention_mask_expanded = attention_mask.unsqueeze(1).unsqueeze(2)
+                # Where attention_mask is 0, set causal_mask to -inf
+                causal_mask = causal_mask.masked_fill(attention_mask_expanded == 0, float("-inf"))
+            
+            return causal_mask
 
     def forward_prefill_with_pruning(
         self,
