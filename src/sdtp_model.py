@@ -7,16 +7,36 @@ from transformers import AutoModelForCausalLM, AutoTokenizer
 
 
 class SDTPModel(nn.Module):
-    def __init__(self, model_name: str, device: Optional[torch.device] = None):
+    def __init__(
+        self,
+        model_name: Optional[str] = None,
+        device: Optional[torch.device] = None,
+        model: Optional[AutoModelForCausalLM] = None,
+        tokenizer: Optional[AutoTokenizer] = None,
+    ):
         super().__init__()
         self.device = device or torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-        self.model = AutoModelForCausalLM.from_pretrained(
-            model_name,
-            torch_dtype=torch.float16,
-            device_map=None,
-        ).to(self.device)
-        self.tokenizer = AutoTokenizer.from_pretrained(model_name)
+        if model is not None:
+            # Reuse an existing model instance
+            self.model = model.to(self.device)
+            if tokenizer is not None:
+                self.tokenizer = tokenizer
+            else:
+                # Fallback: try to infer from model_name or config
+                if model_name is not None:
+                    self.tokenizer = AutoTokenizer.from_pretrained(model_name)
+                else:
+                    # Use config name if available
+                    self.tokenizer = AutoTokenizer.from_pretrained(self.model.config._name_or_path)
+        else:
+            assert model_name is not None, "Either model_name or model must be provided"
+            self.model = AutoModelForCausalLM.from_pretrained(
+                model_name,
+                torch_dtype=torch.float16,
+                device_map=None,
+            ).to(self.device)
+            self.tokenizer = AutoTokenizer.from_pretrained(model_name)
 
         for param in self.model.parameters():
             param.requires_grad = False
@@ -184,3 +204,130 @@ class SDTPModel(nn.Module):
             attention_mask = torch.ones(hidden_states.shape[:2], dtype=torch.long, device=self.device)
 
         return logits, kept_indices, attention_mask, hidden_states
+
+    def prefill_with_pruning_infer(
+        self,
+        input_ids: torch.Tensor,
+        attention_mask: Optional[torch.Tensor],
+        keep_ratio: float,
+    ) -> Tuple[torch.Tensor, Dict, List[Tuple[torch.Tensor, torch.Tensor]], torch.Tensor]:
+        """
+        Inference-only SDTP prefill:
+        - Uses use_cache=True to build per-layer KV cache.
+        - Applies token pruning at selected layers.
+        - Prunes both hidden_states and that layer's past_key_values.
+        
+        Returns:
+            logits: [batch, final_seq_len, vocab]
+            pruning_stats: dict with global + per-layer stats
+            past_key_values: list of (key, value) tuples with pruned sequence length
+            attention_mask: pruned attention mask [batch, final_seq_len]
+        """
+        self.model.eval()
+        device = self.device
+
+        input_ids = input_ids.to(device)
+        if attention_mask is not None:
+            attention_mask = attention_mask.to(device)
+        else:
+            attention_mask = torch.ones_like(input_ids, dtype=torch.long, device=device)
+
+        batch_size, seq_len = input_ids.shape
+
+        # Initial embeddings
+        hidden_states = self.model.model.embed_tokens(input_ids)
+        # Build causal attention mask as in training
+        extended_attention = self._prepare_attention_mask(
+            attention_mask, hidden_states.shape[:2], hidden_states
+        )
+
+        # We'll build a full list of past_key_values, one per layer
+        past_key_values = [None] * len(self.model.model.layers)
+
+        # Global pruning stats
+        pruning_stats = {
+            "total_pruning_steps": 0,
+            "total_tokens_pruned": 0,
+            "final_length": seq_len,
+            "layer_stats": [],
+        }
+
+        for idx, block in enumerate(self.model.model.layers):
+            # Position ids always match current sequence length
+            curr_len = hidden_states.size(1)
+            position_ids = torch.arange(curr_len, device=device).unsqueeze(0)
+
+            # Forward through transformer block with use_cache=True
+            block_outputs = block(
+                hidden_states,
+                attention_mask=extended_attention,
+                position_ids=position_ids,
+                past_key_value=None,
+                use_cache=True,
+            )
+            hidden_states = block_outputs[0]
+            layer_past = block_outputs[1]  # (key, value)
+
+            # Optional pruning module
+            pruning_module = self.pruning_modules.get(str(idx), None)
+
+            if pruning_module is not None and not self.training:
+                pruning_module = pruning_module.to(device)
+                # Compute saliency scores
+                scores = pruning_module(hidden_states)   # [batch, seq_len, 1] or [batch, seq_len]
+                scores = self._extract_keep_scores(scores)  # [batch, seq_len]
+
+                # For now we support batch_size == 1 simplification
+                assert scores.size(0) == 1, "Current SDTP inference assumes batch_size = 1"
+                scores_1d = scores[0]  # [seq_len]
+
+                # Reuse apply_pruning logic to get indices and pruned hidden_states & attention
+                pruned_h, pruned_mask, kept_idx = self.apply_pruning(
+                    hidden_states, scores_1d.unsqueeze(0), keep_ratio,
+                    attention_mask=attention_mask,
+                    layer_idx=idx,
+                )
+                # pruned_h: [1, new_len, hidden]
+                # pruned_mask: [1, new_len]
+                new_len = pruned_h.size(1)
+                original_len = hidden_states.size(1)
+
+                # Prune this layer's KV cache along sequence dim=2
+                key, value = layer_past
+                # key, value shape: [batch, num_heads, seq_len, head_dim]
+                kept_flat = kept_idx.squeeze(0)  # [new_len]
+                key = key.index_select(dim=2, index=kept_flat)
+                value = value.index_select(dim=2, index=kept_flat)
+                layer_past = (key, value)
+
+                # Update state / stats
+                hidden_states = pruned_h
+                attention_mask = pruned_mask
+                extended_attention = self._prepare_attention_mask(
+                    attention_mask, hidden_states.shape[:2], hidden_states
+                )
+
+                tokens_kept = new_len
+                tokens_pruned = original_len - new_len
+                pruning_ratio = tokens_pruned / float(original_len)
+
+                layer_stat = {
+                    "layer": idx,
+                    "tokens_kept": int(tokens_kept),
+                    "tokens_pruned": int(tokens_pruned),
+                    "pruning_ratio": float(pruning_ratio),
+                    "original_length": int(original_len),
+                }
+                pruning_stats["total_pruning_steps"] += 1
+                pruning_stats["total_tokens_pruned"] += tokens_pruned
+                pruning_stats["final_length"] = tokens_kept
+                pruning_stats["layer_stats"].append(layer_stat)
+
+            # Store (possibly pruned) KV cache for this layer
+            past_key_values[idx] = layer_past
+
+        # Final norm + LM head
+        hidden_states = self.model.model.norm(hidden_states)
+        logits = self.model.lm_head(hidden_states)
+
+        return logits, pruning_stats, past_key_values, attention_mask

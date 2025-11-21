@@ -179,7 +179,7 @@ def apply_token_pruning(
     # CRITICAL FIX A: Ensure we never prune to zero length
     if seq_len == 0:
         raise ValueError(f"apply_token_pruning: input sequence length is 0!")
-    
+
     # Ensure pruning module is on the same device as hidden_states
     # This ensures device compatibility (pruning modules start on CPU, move to GPU when needed)
     pruning_module = pruning_module.to(device=device, dtype=dtype)
@@ -204,7 +204,7 @@ def apply_token_pruning(
         scores_abs_sum = scores.abs().sum().item()
         scores_min = scores.min().item()
         scores_max = scores.max().item()
-    
+
     # Always keep the first min_head_tokens and last min_tail_ratio * seq_len tokens (as in paper)
     base_keep = set(range(min(min_head_tokens, seq_len)))
     min_tail_tokens = max(16, int(seq_len * min_tail_ratio))  # At least 16, or 10% of sequence
@@ -223,7 +223,7 @@ def apply_token_pruning(
     keep_k = max(keep_k, len(base_keep))
     # Final safeguard: ensure keep_k < seq_len
     keep_k = min(keep_k, seq_len - 1) if seq_len > 1 else 1
-    
+
     # How many tokens to keep in total
     target_keep = keep_k
 
@@ -238,7 +238,7 @@ def apply_token_pruning(
     for idx in sorted_idx.tolist():
         if idx not in base_keep and len(selected) < target_keep:
             selected.append(idx)
-    
+
     # Final safeguard: ensure we have at least 1 token
     if len(selected) == 0:
         selected = [0]  # Keep at least the first token
@@ -360,13 +360,13 @@ def prefill_with_pruning(
 
         # Use internal causal mask: attention_mask=None
         try:
-            outputs = layer(
-                hidden_states,
-                attention_mask=None,
-                position_ids=position_ids,
-                use_cache=False,
-            )
-            hidden_states = outputs[0]
+        outputs = layer(
+            hidden_states,
+            attention_mask=None,
+            position_ids=position_ids,
+            use_cache=False,
+        )
+        hidden_states = outputs[0]
         except Exception as e:
             raise RuntimeError(
                 f"prefill_with_pruning: Layer {layer_idx} forward failed. "
@@ -417,7 +417,7 @@ def prefill_with_pruning(
             f"prefill_with_pruning: Final hidden_states sequence length is 0! "
             f"Original length was {original_length}, final_length in stats={pruning_stats.get('final_length')}"
         )
-    
+
     # Final RMSNorm + LM head to get logits
     hidden_states = model.model.norm(hidden_states)
     logits = model.lm_head(hidden_states)
@@ -591,14 +591,14 @@ def profile_lengths(lengths, config_name: str = "keep07", save_json: bool = True
                 
                 # Baseline End2End - with error handling
                 try:
-                    baseline_result = run_end2end_latency(
-                        model, tokenizer, input_ids, attention_mask,
-                        use_sdtp=False,
-                    )
-                    baseline_prefill_t = baseline_result["prefill_time"]
-                    baseline_decode_t = baseline_result["decode_time"]
-                    baseline_total_t = baseline_result["total_time"]
-                    baseline_kv_lens = baseline_result["kv_lens_after_prefill"]
+                baseline_result = run_end2end_latency(
+                    model, tokenizer, input_ids, attention_mask,
+                    use_sdtp=False,
+                )
+                baseline_prefill_t = baseline_result["prefill_time"]
+                baseline_decode_t = baseline_result["decode_time"]
+                baseline_total_t = baseline_result["total_time"]
+                baseline_kv_lens = baseline_result["kv_lens_after_prefill"]
                 except Exception as e:
                     print(f"[Length {L}] Baseline End2End failed: {e}")
                     raise  # Re-raise to be caught by outer try-except
@@ -610,18 +610,18 @@ def profile_lengths(lengths, config_name: str = "keep07", save_json: bool = True
                 
                 # SDTP End2End - with error handling
                 try:
-                    sdtp_result = run_end2end_latency(
-                        model, tokenizer, input_ids, attention_mask,
-                        use_sdtp=True,
-                        pruning_modules=pruners,
-                        keep_ratio=config["keep_ratio"],
-                        prune_layers=config["prune_layers"],
-                    )
-                    sdtp_prefill_t = sdtp_result["prefill_time"]
-                    sdtp_decode_t = sdtp_result["decode_time"]
-                    sdtp_total_t = sdtp_result["total_time"]
-                    sdtp_kv_lens = sdtp_result["kv_lens_after_prefill"]
-                    pruning_stats = sdtp_result.get("pruning_stats", {})
+                sdtp_result = run_end2end_latency(
+                    model, tokenizer, input_ids, attention_mask,
+                    use_sdtp=True,
+                    pruning_modules=pruners,
+                    keep_ratio=config["keep_ratio"],
+                    prune_layers=config["prune_layers"],
+                )
+                sdtp_prefill_t = sdtp_result["prefill_time"]
+                sdtp_decode_t = sdtp_result["decode_time"]
+                sdtp_total_t = sdtp_result["total_time"]
+                sdtp_kv_lens = sdtp_result["kv_lens_after_prefill"]
+                pruning_stats = sdtp_result.get("pruning_stats", {})
                 except Exception as e:
                     print(f"[Length {L}] SDTP End2End failed: {e}")
                     raise  # Re-raise to be caught by outer try-except
@@ -792,10 +792,24 @@ def profile_lengths(lengths, config_name: str = "keep07", save_json: bool = True
         print(f"[OK] Results saved to {combined_path}")
         
         # Also save backward-compatible separate files
-        baseline_results = {k: v["baseline"]["latency_seconds"] 
-                           for k, v in results_data["results"].items()}
-        sdtp_results = {k: v["sdtp"]["latency_seconds"] 
-                       for k, v in results_data["results"].items()}
+        if benchmark_mode == "prefill":
+            baseline_results = {
+                k: v["baseline"]["latency_seconds"]
+                for k, v in results_data["results"].items()
+            }
+            sdtp_results = {
+                k: v["sdtp"]["latency_seconds"]
+                for k, v in results_data["results"].items()
+            }
+        else:  # "end2end"
+            baseline_results = {
+                k: v["baseline"]["total_latency_seconds"]
+                for k, v in results_data["results"].items()
+            }
+            sdtp_results = {
+                k: v["sdtp"]["total_latency_seconds"]
+                for k, v in results_data["results"].items()
+            }
         
         baseline_path = f"results/latency_baseline_{config_name}.json"
         sdtp_path = f"results/latency_sdtp_{config_name}.json"

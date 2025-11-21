@@ -22,6 +22,7 @@ try:
         build_dummy_input,
         device,
     )
+    from sdtp_model import SDTPModel
 except ImportError:
     # Fallback if running as standalone
     import sys
@@ -39,6 +40,7 @@ except ImportError:
         build_dummy_input,
         device,
     )
+    from sdtp_model import SDTPModel
 
 MAX_NEW_TOKENS = 128  # Generate 128 tokens as in paper
 
@@ -153,123 +155,120 @@ def run_end2end_sdtp(
     max_new_tokens: int = MAX_NEW_TOKENS,
 ) -> Dict:
     """
-    Run SDTP end-to-end inference (prefill with pruning + generate).
-    
-    This function:
-    1. Uses prefill_with_pruning() to measure SDTP prefill time
-    2. For decode, uses standard model.generate() with original input_ids
-       (This is a limitation but ensures no 0-length tensor errors)
-    
-    Args:
-        model: The language model
-        tokenizer: The tokenizer (unused, kept for API consistency)
-        input_ids: Input token IDs [batch, seq_len]
-        attention_mask: Attention mask [batch, seq_len]
-        pruning_modules: Dictionary of pruning modules
-        keep_ratio: Token keep ratio
-        prune_layers: List of layer indices to prune
-        max_new_tokens: Number of tokens to generate
-        
-    Returns:
-        Dictionary with timing, KV cache, and pruning information
+    Run SDTP end-to-end inference (prefill with pruning + decode with pruned KV cache).
+
+    Steps:
+      1. Wrap the base model in SDTPModel, attach pruning modules.
+      2. Run prefill_with_pruning_infer to get:
+         - logits
+         - pruning_stats
+         - pruned past_key_values
+         - pruned attention_mask
+      3. Run a custom greedy decode loop that uses:
+         - last generated token
+         - pruned attention_mask
+         - pruned past_key_values
+      4. Measure prefill_time, decode_time, total_time.
     """
-    # CRITICAL: Guard against 0-length input
     assert input_ids.shape[1] > 0, f"input_ids seq_len must be > 0, got {input_ids.shape[1]}"
     assert attention_mask is None or attention_mask.shape[1] == input_ids.shape[1], \
         f"attention_mask seq_len {attention_mask.shape[1]} != input_ids seq_len {input_ids.shape[1]}"
-    
+
+    device = input_ids.device
     model.eval()
-    
+
+    # Wrap base model and tokenizer with SDTPModel to reuse inference utilities
+    sdtp = SDTPModel(
+        model=model,
+        tokenizer=tokenizer,
+        device=device,
+    )
+
+    # Attach pruning modules
+    for name, module in pruning_modules.items():
+        layer_idx = int(name)
+        sdtp.attach_pruning_module(layer_idx, module)
+
     with torch.no_grad():
-        # Warmup
-        try:
-            logits, _ = prefill_with_pruning(
-                model, input_ids, attention_mask, pruning_modules,
-                keep_ratio, prune_layers, MIN_HEAD_TOKENS, MIN_TAIL_RATIO,
-            )
-            # Verify logits shape is valid
-            assert logits.shape[1] > 0, f"prefill_with_pruning returned logits with seq_len=0"
-        except Exception as e:
-            raise RuntimeError(f"SDTP prefill warmup failed: {e}") from e
-        
-        _ = model.generate(
-            input_ids=input_ids,
-            attention_mask=attention_mask,
-            max_new_tokens=1,
-            do_sample=False,
-        )
-        if device.type == "cuda":
-            torch.cuda.synchronize()
-        
-        # Measure prefill time with pruning
+        # Prefill with pruning
         if device.type == "cuda":
             torch.cuda.synchronize()
         prefill_start = time.perf_counter()
-        
-        # Prefill with pruning - this is the proven-correct SDTP implementation
-        logits, pruning_stats = prefill_with_pruning(
-            model, input_ids, attention_mask, pruning_modules,
-            keep_ratio, prune_layers, MIN_HEAD_TOKENS, MIN_TAIL_RATIO,
+
+        logits, pruning_stats, past_key_values, pruned_attn = sdtp.prefill_with_pruning_infer(
+            input_ids, attention_mask, keep_ratio=keep_ratio
         )
-        
-        # CRITICAL: Verify prefill output is valid
-        assert logits.shape[1] > 0, \
-            f"prefill_with_pruning returned logits with seq_len=0! pruning_stats={pruning_stats}"
-        
+
         if device.type == "cuda":
             torch.cuda.synchronize()
         prefill_end = time.perf_counter()
         prefill_time = prefill_end - prefill_start
+
+        # Sanity checks
+        assert logits.size(1) > 0, "SDTP prefill returned empty sequence"
+        final_seq_len = pruned_attn.size(1)
+        assert final_seq_len == pruning_stats.get("final_length", final_seq_len), \
+            "Mismatch between pruned attention length and pruning_stats['final_length']"
+
+        # KV lengths after prefill: we approximate by final_seq_len for all layers
+        kv_lens_after_prefill = [final_seq_len] * len(model.model.layers)
+
+        # Decode with pruned KV cache
+        # We build a simple greedy decoding loop:
+        #   - start from the last token prediction of prefill logits
+        #   - at each step, pass it with past_key_values and pruned_attn
+        #   - append the predicted token to generated_ids (for inspection only)
+
+        # Start decode from the last token prediction of prefill
+        next_token_logits = logits[:, -1, :]  # [1, vocab]
+        first_token = torch.argmax(next_token_logits, dim=-1, keepdim=True)  # [1, 1]
         
-        # Get pruned sequence length from stats
-        final_seq_len = pruning_stats.get("final_length", input_ids.shape[1])
-        
-        # CRITICAL: Ensure pruned length is valid
-        if final_seq_len == 0:
-            # Fallback: keep at least first few tokens
-            final_seq_len = max(4, int(input_ids.shape[1] * 0.1))
-            print(f"[WARNING] Pruned seq_len was 0, using fallback: {final_seq_len}")
-        
-        # For decode, we use standard generate() with original input_ids
-        # This is a limitation: we're not using the pruned sequence for decode
-        # But it's the safest approach to avoid 0-length tensor errors
-        # In a full implementation, we would need to track pruned indices and reconstruct input
+        generated_ids = first_token.to(device)  # Start with the first generated token
+        attn = pruned_attn.to(device)
+        kv = past_key_values
+
         if device.type == "cuda":
             torch.cuda.synchronize()
         decode_start = time.perf_counter()
-        
-        # Generate tokens using standard generation from original input
-        # We use original input_ids to avoid any dimension mismatches
-        generated = model.generate(
-            input_ids=input_ids,
-            attention_mask=attention_mask,
-            max_new_tokens=max_new_tokens,
-            do_sample=False,
-            use_cache=True,
-        )
-        
-        # CRITICAL: Verify generated output is valid
-        assert generated.shape[1] > input_ids.shape[1], \
-            f"generate() output length {generated.shape[1]} <= input length {input_ids.shape[1]}"
-        
+
+        for step in range(max_new_tokens - 1):  # -1 because we already generated the first token
+            # Use the last generated token as the next input
+            next_input = generated_ids[:, -1:].to(device)  # [batch=1, 1]
+
+            outputs = model(
+                input_ids=next_input,
+                attention_mask=attn,
+                past_key_values=kv,
+                use_cache=True,
+            )
+            next_logits = outputs.logits[:, -1, :]  # [1, vocab]
+            next_token = torch.argmax(next_logits, dim=-1, keepdim=True)  # [1, 1]
+
+            # Append new token to generated_ids (for final length reporting)
+            generated_ids = torch.cat([generated_ids, next_token], dim=1)
+
+            # Update attention mask and KV cache
+            new_mask_token = torch.ones(attn.size(0), 1, dtype=attn.dtype, device=attn.device)
+            attn = torch.cat([attn, new_mask_token], dim=1)
+            kv = outputs.past_key_values
+
         if device.type == "cuda":
             torch.cuda.synchronize()
         decode_end = time.perf_counter()
         decode_time = decode_end - decode_start
-        
-        # KV cache lengths (approximate)
-        kv_lens_after_prefill = [final_seq_len] * len(model.model.layers)
-        kv_lens_final = [final_seq_len + (generated.shape[1] - input_ids.shape[1])] * len(model.model.layers)
-    
+
     total_time = prefill_time + decode_time
-    
+
+    kv_lens_final = [kv_lens_after_prefill[0] + max_new_tokens] * len(model.model.layers)
+    generated_length = generated_ids.shape[1]  # Total generated tokens (including first one from prefill)
+
     return {
         "prefill_time": prefill_time,
         "decode_time": decode_time,
         "total_time": total_time,
         "kv_lens_after_prefill": kv_lens_after_prefill,
         "kv_lens_final": kv_lens_final,
-        "generated_length": generated.shape[1] - input_ids.shape[1],
+        "generated_length": int(generated_length),
         "pruning_stats": pruning_stats,
     }
 
