@@ -112,6 +112,22 @@ def apply_token_pruning(hidden_states, pruning_module, keep_ratio):
 
     # scores: [seq]
     scores = pruning_module(hs_flat)
+    scores = scores.squeeze(-1) if scores.dim() > 1 else scores
+    
+    # CRITICAL FIX A: Ensure we never prune to zero length
+    if seq_len == 0:
+        raise ValueError(f"apply_token_pruning: input sequence length is 0!")
+    
+    # CRITICAL FIX D: Validate saliency scores
+    scores_abs_sum = scores.abs().sum().item()
+    scores_min = scores.min().item()
+    scores_max = scores.max().item()
+    
+    if scores_abs_sum == 0 or (scores_max - scores_min) < 1e-8:
+        # All scores are zero or identical - add small random noise
+        scores = scores + 1e-6 * torch.randn_like(scores)
+        scores_min = scores.min().item()
+        scores_max = scores.max().item()
 
     # mandatory keep: head + tail (10% of sequence, as in paper)
     base_keep = set(range(min(MIN_HEAD_TOKENS, seq_len)))
@@ -119,8 +135,20 @@ def apply_token_pruning(hidden_states, pruning_module, keep_ratio):
     for i in range(max(0, seq_len - min_tail_tokens), seq_len):
         base_keep.add(i)
 
-    target_keep = max(int(seq_len * keep_ratio), len(base_keep))
-    target_keep = min(target_keep, seq_len)
+    # CRITICAL FIX A: Compute keep_k with safeguards
+    # Each layer prunes based on CURRENT sequence length (not cumulative)
+    keep_k = int(seq_len * keep_ratio)
+    # Guarantee minimum: at least 1 token
+    keep_k = max(1, keep_k)
+    # Ensure we don't keep all tokens (must prune at least 1)
+    if keep_k >= seq_len:
+        keep_k = max(1, seq_len - 1)
+    # Ensure we keep at least all mandatory tokens
+    keep_k = max(keep_k, len(base_keep))
+    # Final safeguard: ensure keep_k < seq_len
+    keep_k = min(keep_k, seq_len - 1) if seq_len > 1 else 1
+    
+    target_keep = keep_k
 
     # sort by score
     _, sorted_idx = torch.topk(scores, k=seq_len)
@@ -132,11 +160,19 @@ def apply_token_pruning(hidden_states, pruning_module, keep_ratio):
     for idx in sorted_idx.tolist():
         if idx not in base_keep and len(selected) < target_keep:
             selected.append(idx)
+    
+    # Final safeguard: ensure we have at least 1 token
+    if len(selected) == 0:
+        selected = [0]  # Keep at least the first token
 
     selected = sorted(selected)
     index_tensor = torch.tensor(selected, dtype=torch.long, device=device)
 
     pruned_hidden = hidden_states[:, index_tensor, :]
+    
+    # CRITICAL FIX A: Final validation - ensure output is not empty
+    if pruned_hidden.size(1) == 0:
+        raise ValueError(f"apply_token_pruning: Output sequence length is 0! seq_len={seq_len}, keep_k={keep_k}, selected={len(selected)}")
 
     return pruned_hidden, index_tensor
 

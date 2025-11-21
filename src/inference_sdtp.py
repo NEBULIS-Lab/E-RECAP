@@ -32,26 +32,30 @@ MAX_NEW_TOKENS = 128
 # Configuration presets
 KEEP09_CONFIG = {
     "prune_layers": [4, 7, 10, 13, 16, 19, 22, 25],  # 8 layers
-    "keep_ratio": 0.9,  # Keep 90% tokens per layer
+    "keep_ratio": 0.9,  # Keep 90% tokens per layer (applied to CURRENT sequence length, NOT cumulative)
     "min_head_tokens": 4,
     "min_tail_ratio": 0.1,  # Keep 10% of tokens at tail (as in paper)
-    "cumulative_keep_ratio": 0.9 ** 8,  # ~0.43
+    # NOTE: cumulative_keep_ratio is for reference only - actual pruning applies keep_ratio per layer
+    # Each layer prunes based on its current sequence length, not the original length
+    "cumulative_keep_ratio": 0.9 ** 8,  # ~0.43 (reference only, not used in pruning logic)
 }
 
 KEEP08_CONFIG = {
     "prune_layers": [4, 7, 10, 13, 16, 19, 22, 25],  # 8 layers
-    "keep_ratio": 0.8,  # Keep 80% tokens per layer
+    "keep_ratio": 0.8,  # Keep 80% tokens per layer (applied to CURRENT sequence length, NOT cumulative)
     "min_head_tokens": 4,
     "min_tail_ratio": 0.1,  # Keep 10% of tokens at tail (as in paper)
-    "cumulative_keep_ratio": 0.8 ** 8,  # ~0.17
+    # NOTE: cumulative_keep_ratio is for reference only - actual pruning applies keep_ratio per layer
+    "cumulative_keep_ratio": 0.8 ** 8,  # ~0.17 (reference only, not used in pruning logic)
 }
 
 KEEP07_CONFIG = {
     "prune_layers": [4, 7, 10, 13, 16, 19, 22, 25],  # 8 layers
-    "keep_ratio": 0.7,  # Keep 70% tokens per layer
+    "keep_ratio": 0.7,  # Keep 70% tokens per layer (applied to CURRENT sequence length, NOT cumulative)
     "min_head_tokens": 4,
     "min_tail_ratio": 0.1,  # Keep 10% of tokens at tail (as in paper)
-    "cumulative_keep_ratio": 0.7 ** 8,  # ~0.058
+    # NOTE: cumulative_keep_ratio is for reference only - actual pruning applies keep_ratio per layer
+    "cumulative_keep_ratio": 0.7 ** 8,  # ~0.058 (reference only, not used in pruning logic)
 }
 
 # Default config (keep07)
@@ -141,19 +145,28 @@ def apply_token_pruning(
     keep_ratio: float,
     min_head_tokens: int = None,
     min_tail_ratio: float = None,
+    layer_idx: int = -1,
+    debug_log: bool = False,
 ) -> Tuple[torch.Tensor, torch.Tensor, Dict]:
     """
     hidden_states: [1, seq_len, hidden]
     pruning_module: TokenPruningModule
-    keep_ratio: fraction of tokens to keep
+    keep_ratio: fraction of tokens to keep (applied to CURRENT sequence length, NOT cumulative)
     min_head_tokens: minimum tokens to keep at head (default: MIN_HEAD_TOKENS)
     min_tail_ratio: ratio of tokens to keep at tail (default: MIN_TAIL_RATIO, as in paper: 10%)
+    layer_idx: layer index for debug logging
+    debug_log: whether to log debug information
 
     Returns:
         pruned_hidden_states: [1, kept_len, hidden]
         index_tensor: [kept_len] indices kept
         stats: dict with pruning statistics
     """
+    import logging
+    import json
+    import os
+    from datetime import datetime
+    
     if min_head_tokens is None:
         min_head_tokens = MIN_HEAD_TOKENS
     if min_tail_ratio is None:
@@ -163,6 +176,10 @@ def apply_token_pruning(
     device = hidden_states.device
     dtype = hidden_states.dtype
 
+    # CRITICAL FIX A: Ensure we never prune to zero length
+    if seq_len == 0:
+        raise ValueError(f"apply_token_pruning: input sequence length is 0!")
+    
     # Ensure pruning module is on the same device as hidden_states
     # This ensures device compatibility (pruning modules start on CPU, move to GPU when needed)
     pruning_module = pruning_module.to(device=device, dtype=dtype)
@@ -172,16 +189,43 @@ def apply_token_pruning(
 
     # importance scores: [seq_len]
     scores = pruning_module(hs_flat)
-
+    scores = scores.squeeze(-1) if scores.dim() > 1 else scores
+    
+    # CRITICAL FIX D: Validate saliency scores before sorting
+    scores_abs_sum = scores.abs().sum().item()
+    scores_min = scores.min().item()
+    scores_max = scores.max().item()
+    
+    if scores_abs_sum == 0 or (scores_max - scores_min) < 1e-8:
+        # All scores are zero or identical - add small random noise to break ties
+        if debug_log:
+            print(f"[WARNING] Layer {layer_idx}: All saliency scores are zero/identical, adding noise")
+        scores = scores + 1e-6 * torch.randn_like(scores)
+        scores_abs_sum = scores.abs().sum().item()
+        scores_min = scores.min().item()
+        scores_max = scores.max().item()
+    
     # Always keep the first min_head_tokens and last min_tail_ratio * seq_len tokens (as in paper)
     base_keep = set(range(min(min_head_tokens, seq_len)))
     min_tail_tokens = max(16, int(seq_len * min_tail_ratio))  # At least 16, or 10% of sequence
     for i in range(max(0, seq_len - min_tail_tokens), seq_len):
         base_keep.add(i)
 
+    # CRITICAL FIX A: Compute keep_k with safeguards
+    # Each layer prunes based on CURRENT sequence length (not cumulative)
+    keep_k = int(seq_len * keep_ratio)
+    # Guarantee minimum: at least 1 token
+    keep_k = max(1, keep_k)
+    # Ensure we don't keep all tokens (must prune at least 1)
+    if keep_k >= seq_len:
+        keep_k = max(1, seq_len - 1)
+    # Ensure we keep at least all mandatory tokens
+    keep_k = max(keep_k, len(base_keep))
+    # Final safeguard: ensure keep_k < seq_len
+    keep_k = min(keep_k, seq_len - 1) if seq_len > 1 else 1
+    
     # How many tokens to keep in total
-    target_keep = max(int(seq_len * keep_ratio), len(base_keep))
-    target_keep = min(target_keep, seq_len)
+    target_keep = keep_k
 
     # Sort tokens by score (descending)
     _, sorted_idx = torch.topk(scores, k=seq_len)
@@ -194,7 +238,11 @@ def apply_token_pruning(
     for idx in sorted_idx.tolist():
         if idx not in base_keep and len(selected) < target_keep:
             selected.append(idx)
-
+    
+    # Final safeguard: ensure we have at least 1 token
+    if len(selected) == 0:
+        selected = [0]  # Keep at least the first token
+    
     selected = sorted(selected)
     index_tensor = torch.tensor(
         selected,
@@ -202,6 +250,10 @@ def apply_token_pruning(
         dtype=torch.long,
     )
     pruned_hidden = hidden_states[:, index_tensor, :]
+
+    # CRITICAL FIX A: Final validation - ensure output is not empty
+    if pruned_hidden.size(1) == 0:
+        raise ValueError(f"apply_token_pruning: Output sequence length is 0! seq_len={seq_len}, keep_k={keep_k}, selected={len(selected)}")
 
     # Calculate statistics
     tokens_kept = len(selected)
@@ -213,7 +265,31 @@ def apply_token_pruning(
         "tokens_pruned": tokens_pruned,
         "pruning_ratio": pruning_ratio,
         "original_length": seq_len,
+        "keep_k": keep_k,
+        "scores_min": scores_min,
+        "scores_max": scores_max,
+        "scores_abs_sum": scores_abs_sum,
     }
+    
+    # CRITICAL FIX E: Debug logging
+    if debug_log:
+        log_entry = {
+            "timestamp": datetime.now().isoformat(),
+            "layer": layer_idx,
+            "input_seq_len": seq_len,
+            "computed_keep_k": keep_k,
+            "tokens_kept": tokens_kept,
+            "tokens_pruned": tokens_pruned,
+            "pruning_ratio": pruning_ratio,
+            "scores_min": scores_min,
+            "scores_max": scores_max,
+            "scores_abs_sum": scores_abs_sum,
+            "fallback_applied": scores_abs_sum == 0 or (scores_max - scores_min) < 1e-8,
+        }
+        os.makedirs("debug", exist_ok=True)
+        with open("debug/prune_log.jsonl", "a") as f:
+            f.write(json.dumps(log_entry) + "\n")
+        print(f"[PRUNE] Layer {layer_idx}: seq_len={seq_len}, keep_k={keep_k}, kept={tokens_kept}, pruned={tokens_pruned}, ratio={pruning_ratio:.2%}")
 
     return pruned_hidden, index_tensor, stats
 
@@ -286,12 +362,16 @@ def prefill_with_pruning(
         # Apply token pruning on selected layers
         if layer_idx in prune_layers:
             pruner = pruning_modules[str(layer_idx)]
+            # CRITICAL FIX B: Each layer prunes based on CURRENT sequence length
+            # keep_ratio is applied per layer, NOT cumulatively
             hidden_states, _, stats = apply_token_pruning(
                 hidden_states,
                 pruner,
-                keep_ratio,
+                keep_ratio,  # Applied to current seq_len, not cumulative
                 min_head_tokens,
                 min_tail_ratio,
+                layer_idx=layer_idx,
+                debug_log=True,  # Enable debug logging
             )
             pruning_stats["total_pruning_steps"] += 1
             pruning_stats["total_tokens_pruned"] += stats["tokens_pruned"]

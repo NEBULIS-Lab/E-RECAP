@@ -38,19 +38,55 @@ class SDTPModel(nn.Module):
         scores: torch.Tensor,
         keep_ratio: float,
         attention_mask: Optional[torch.Tensor] = None,
+        layer_idx: int = -1,
     ) -> Tuple[torch.Tensor, Optional[torch.Tensor], torch.Tensor]:
         batch_size, seq_len, _ = hidden_states.shape
-        keep_k = max(1, int(seq_len * keep_ratio))
+        
+        # CRITICAL FIX A: Guaranteed minimum token retention
+        if seq_len == 0:
+            raise ValueError(f"apply_pruning: input sequence length is 0!")
+        
+        # CRITICAL FIX D: Validate saliency scores
+        scores_flat = scores.flatten()
+        scores_abs_sum = scores_flat.abs().sum().item()
+        scores_min = scores_flat.min().item()
+        scores_max = scores_flat.max().item()
+        
+        if scores_abs_sum == 0 or (scores_max - scores_min) < 1e-8:
+            # All scores are zero or identical - add small random noise
+            print(f"[WARNING] Layer {layer_idx}: All saliency scores are zero/identical, adding noise")
+            scores = scores + 1e-6 * torch.randn_like(scores)
+            scores_flat = scores.flatten()
+            scores_min = scores_flat.min().item()
+            scores_max = scores_flat.max().item()
+        
+        # CRITICAL FIX A: Compute keep_k with safeguards
+        # Each layer prunes based on CURRENT sequence length (not cumulative)
+        keep_k = int(seq_len * keep_ratio)
+        # Guarantee minimum: at least 1 token
+        keep_k = max(1, keep_k)
+        # Ensure we don't keep all tokens (must prune at least 1)
+        if keep_k >= seq_len:
+            keep_k = max(1, seq_len - 1)
+        # Final safeguard: ensure keep_k < seq_len
+        keep_k = min(keep_k, seq_len - 1) if seq_len > 1 else 1
 
         topk = scores.topk(keep_k, dim=-1, largest=True)
         topk_indices = topk.indices.sort(dim=-1).values
 
         gather_index = topk_indices.unsqueeze(-1).expand(-1, -1, hidden_states.size(-1))
         pruned_hidden_states = torch.gather(hidden_states, dim=1, index=gather_index)
+        
+        # CRITICAL FIX A: Final validation - ensure output is not empty
+        if pruned_hidden_states.size(1) == 0:
+            raise ValueError(f"apply_pruning: Output sequence length is 0! seq_len={seq_len}, keep_k={keep_k}")
 
         pruned_attention_mask = None
         if attention_mask is not None:
             pruned_attention_mask = torch.gather(attention_mask, dim=1, index=topk_indices)
+            # CRITICAL FIX F: Ensure attention mask matches pruned length
+            assert pruned_attention_mask.size(1) == pruned_hidden_states.size(1), \
+                f"Attention mask length {pruned_attention_mask.size(1)} != pruned hidden states length {pruned_hidden_states.size(1)}"
 
         return pruned_hidden_states, pruned_attention_mask, topk_indices
 
@@ -116,12 +152,15 @@ class SDTPModel(nn.Module):
                 else:
                     scores = pruning_module(hidden_states)
                     scores = self._extract_keep_scores(scores)
+                    # CRITICAL FIX B: Each layer prunes based on CURRENT sequence length
+                    # keep_ratio is applied per layer, NOT cumulatively
                     hidden_states, attention_mask, kept = self.apply_pruning(
-                        hidden_states, scores, keep_ratio, attention_mask
+                        hidden_states, scores, keep_ratio, attention_mask, layer_idx=idx
                     )
                     kept_indices[idx] = kept.detach()
                     position_ids = torch.arange(hidden_states.size(1), device=self.device).unsqueeze(0)
                     extended_attention = self._prepare_attention_mask(attention_mask, hidden_states.shape[:2], hidden_states)
+                    # CRITICAL FIX F: Ensure KV cache matches pruned lengths
                     past_key_values = self.prune_past_key_values(past_key_values, kept)
 
             block_outputs = block(
