@@ -313,7 +313,7 @@ The `scripts/` directory contains helper scripts for common tasks:
 
 ## Results
 
-**Note:** The following results are for Qwen2-7B model in planning task phase (prefill only).
+**Note:** The following results are for Qwen2-7B model. Prefill results are for planning task phase only. End-to-end results include both prefill and decode phases.
 
 ### Single GPU Prefill Speedup
 
@@ -339,6 +339,19 @@ The `scripts/` directory contains helper scripts for common tasks:
 **Average:** 20.68× speedup, 94.3% latency reduction
 
 **Hardware:** 8× NVIDIA RTX 5880 Ada Generation (48GB each), keep_ratio=0.7
+
+### Single GPU End-to-End Speedup
+
+| Keep Ratio | Sequence Length | Speedup |
+|------------|----------------|---------|
+| 0.7 | 1024 | 1.53× |
+| 0.7 | 2048 | 5.50× |
+| 0.7 | 4096 | 0.66× |
+| 0.7 | 8192 | 5.15× |
+| 0.7 | 16384 | 4.86× |
+| 0.7 | 32768 | 2.54× |
+
+**Hardware:** NVIDIA RTX 5880 Ada (48GB), single GPU
 
 ## Model Configuration
 
