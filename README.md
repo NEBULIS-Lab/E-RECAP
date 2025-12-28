@@ -70,19 +70,83 @@ E-RECAP/
 <th style="text-align:left">Model</th>
 <th>Params</th>
 <th>Rec VRAM</th>
+<th style="text-align:left">Link</th>
 <th style="text-align:left">Model</th>
-<th>Params</th>
-<th>Rec VRAM</th>
+<th>Link</th>
 </tr>
 </thead>
 <tbody>
-<tr><td style="text-align:left">LLaMA-2</td><td>7B / 13B</td><td>8 GB / 16 GB</td><td style="text-align:left">LLaMA-3 / 3.1</td><td>8B</td><td>12 GB</td></tr>
-<tr><td style="text-align:left">LLaMA-3.2</td><td>3B</td><td>4 GB</td><td style="text-align:left">Mistral</td><td>7B</td><td>8 GB</td></tr>
-<tr><td style="text-align:left">Qwen2</td><td>7B / 14B</td><td>12 GB / 16 GB</td><td style="text-align:left">Qwen2.5</td><td>7B / 14B</td><td>12 GB / 16 GB</td></tr>
-<tr><td style="text-align:left">Qwen3</td><td>7B / 14B</td><td>12 GB / 16 GB</td><td style="text-align:left">Yi</td><td>6B / 13B</td><td>8 GB / 16 GB</td></tr>
-<tr><td style="text-align:left">DeepSeek</td><td>7B / 14B</td><td>12 GB / 16 GB</td><td style="text-align:left">Gemma-2</td><td>7B</td><td>12 GB</td></tr>
-<tr><td style="text-align:left">Phi-3</td><td>7B</td><td>12 GB</td><td style="text-align:left">ChatGLM3</td><td>6B</td><td>8 GB</td></tr>
-<tr><td style="text-align:left">Baichuan2</td><td>7B / 13B</td><td>12 GB / 16 GB</td><td style="text-align:left">InternLM2</td><td>7B / 20B</td><td>12 GB / 24 GB</td></tr>
+<tr>
+  <td style="text-align:left">LLaMA-2</td>
+  <td>7B / 13B</td>
+  <td>~14 GB / ~26 GB</td>
+  <td style="text-align:left"><a href="https://huggingface.co/meta-llama/Llama-2-7b-chat-hf">LLaMA-2-7B</a></td>
+  <td>—</td>
+  <td>—</td>
+</tr>
+
+<tr>
+  <td style="text-align:left">LLaMA-3 / 3.1</td>
+  <td>8B / 70B</td>
+  <td>~16 GB / ~140 GB</td>
+  <td style="text-align:left"><a href="https://huggingface.co/meta-llama/Llama-3-8b">LLaMA-3-8B</a></td>
+  <td>—</td>
+  <td>—</td>
+</tr>
+
+<tr>
+  <td style="text-align:left">LLaMA-3.2</td>
+  <td>1B / 3B / 11B / 90B</td>
+  <td>~2 GB / ~6 GB / ~22 GB / ~180 GB</td>
+  <td style="text-align:left"><a href="https://huggingface.co/meta-llama/Llama-3.2-11b">LLaMA-3.2-11B</a></td>
+  <td>—</td>
+  <td>—</td>
+</tr>
+
+<tr>
+  <td style="text-align:left">Qwen2</td>
+  <td>7B / 14B / 32B / 72B</td>
+  <td>~14 GB / ~28 GB / ~64 GB / ~144 GB</td>
+  <td style="text-align:left"><a href="https://huggingface.co/Qwen/Qwen2-14B">Qwen2-14B</a></td>
+  <td>Qwen2.5</td>
+  <td><a href="https://huggingface.co/Qwen/Qwen2.5-14B">Qwen2.5-14B</a></td>
+</tr>
+
+<tr>
+  <td style="text-align:left">Qwen3</td>
+  <td>0.6B / 1.7B / 4B / 8B / 14B / 32B</td>
+  <td>~1.2 GB / ~3.4 GB / ~8 GB / ~16 GB / ~28 GB / ~64 GB</td>
+  <td style="text-align:left"><a href="https://huggingface.co/Qwen/Qwen3-8B-Base">Qwen3-8B</a></td>
+  <td>Yi</td>
+  <td><a href="https://huggingface.co/tomhao/yi_6b_chat_tool_use">Yi-6B</a></td>
+</tr>
+
+<tr>
+  <td style="text-align:left">DeepSeek-LLM</td>
+  <td>7B / 67B</td>
+  <td>~14 GB / ~134 GB</td>
+  <td style="text-align:left"><a href="https://huggingface.co/deepseek-ai/deepseek-llm-7b-chat">DeepSeek-7B</a></td>
+  <td>Gemma-2</td>
+  <td><a href="https://huggingface.co/gemma-2/9B">Gemma-2-9B</a></td>
+</tr>
+
+<tr>
+  <td style="text-align:left">Phi-3</td>
+  <td>3.8B / 7B</td>
+  <td>~7.6 GB / ~14 GB</td>
+  <td style="text-align:left"><a href="https://huggingface.co/microsoft/Phi-3-mini-4k-instruct">Phi-3-3.8B</a></td>
+  <td>ChatGLM3</td>
+  <td><a href="https://huggingface.co/THUDM/chatglm3-6b">ChatGLM3-6B</a></td>
+</tr>
+
+<tr>
+  <td style="text-align:left">Baichuan2</td>
+  <td>7B / 13B</td>
+  <td>~14 GB / ~26 GB</td>
+  <td style="text-align:left"><a href="https://huggingface.co/baichuan-inc/Baichuan2-7B">Baichuan2-7B</a></td>
+  <td>InternLM2</td>
+  <td><a href="https://huggingface.co/internlm/internlm2-20b">InternLM2-20B</a></td>
+</tr>
 </tbody>
 </table>
 
