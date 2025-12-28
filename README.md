@@ -2,14 +2,7 @@
 
 <div align="center">
 
-![](https://img.shields.io/github/last-commit/NEBULIS-Lab/E-RECAP?color=green)
-![](https://img.shields.io/badge/version-2.0-blue)
-<a href="#"><img src="https://img.shields.io/badge/arXiv-coming%20soon-009688.svg" alt="arXiv"></a>
-<br>
-<a href="https://pytorch.org/get-started/locally/"><img alt="PyTorch" src="https://img.shields.io/badge/PyTorch-ee4c2c?logo=pytorch&logoColor=white"></a>
-<a href="https://huggingface.co/docs/transformers"><img alt="Transformers" src="https://img.shields.io/badge/Transformers-ffd21e?logo=huggingface&logoColor=black"></a>
-<a href="https://www.deepspeed.ai/"><img alt="DeepSpeed" src="https://img.shields.io/badge/DeepSpeed-0A66FF?logo=microsoft&logoColor=white"></a>
-<a href="https://huggingface.co/docs/accelerate"><img alt="Accelerate" src="https://img.shields.io/badge/Accelerate-ffd21e?logo=huggingface&logoColor=black"></a>
+![](https://img.shields.io/github/last-commit/NEBULIS-Lab/E-RECAP?color=green) ![](https://img.shields.io/badge/version-2.0-blue) <a href="#"><img src="https://img.shields.io/badge/arXiv-coming%20soon-009688.svg" alt="arXiv"></a> <a href="https://pytorch.org/get-started/locally/"><img alt="PyTorch" src="https://img.shields.io/badge/PyTorch-ee4c2c?logo=pytorch&logoColor=white"></a> <a href="https://huggingface.co/docs/transformers"><img alt="Transformers" src="https://img.shields.io/badge/Transformers-ffd21e?logo=huggingface&logoColor=black"></a> <a href="https://www.deepspeed.ai/"><img alt="DeepSpeed" src="https://img.shields.io/badge/DeepSpeed-0A66FF?logo=microsoft&logoColor=white"></a> <a href="https://huggingface.co/docs/accelerate"><img alt="Accelerate" src="https://img.shields.io/badge/Accelerate-ffd21e?logo=huggingface&logoColor=black"></a>
 
 </div>
 
