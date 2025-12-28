@@ -129,7 +129,7 @@ pip install torch --index-url https://download.pytorch.org/whl/cu121
    - Used for training pruning module in Stage 2
 
 4. **Training data** → `data/raw/dolly15k/` or `dolly15k/`
-   - Used for Stage 1 and Stage 2 training
+   - Dolly-15k dataset is used for Stage 1 (saliency computation) and Stage 2 (pruning module training)
    - Can use any HuggingFace-compatible dataset
 
 5. **Results** → `results/`
@@ -193,7 +193,7 @@ Only needed if `checkpoints/saliency.pt` doesn't exist:
 bash scripts/run_stage1.sh 1000
 ```
 
-**Note:** This stage uses the model specified in `src/stage1_saliency.py`. Make sure to set the correct model path there if using a different model.
+**Note:** This stage uses Dolly-15k dataset for training and the model specified in `src/stage1_saliency.py`. Make sure to set the correct model path there if using a different model.
 
 #### Stage 2: Pruning Module Training (Required)
 
@@ -206,7 +206,7 @@ Parameters:
 - First argument: Learning rate (default: 1e-4)
 - Second argument: Number of epochs (default: 2)
 
-**Note:** This stage trains a model-specific pruning module. The trained `pruning_module.pt` is tied to the model's `hidden_size`. If you change models, you may need to retrain the pruning module if the new model has a different `hidden_size`.
+**Note:** This stage trains a model-specific pruning module using Dolly-15k dataset. The trained `pruning_module.pt` is tied to the model's `hidden_size`. If you change models, you may need to retrain the pruning module if the new model has a different `hidden_size`.
 
 #### Inference
 

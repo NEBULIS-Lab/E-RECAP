@@ -132,8 +132,6 @@ dmypy.json
 # Ignore all contents in data/ directory (including subdirectories)
 data/**
 # But allow specific subdirectories to be tracked
-!data/lmeval_cache/
-!data/lmeval_cache/**
 !data/LongBench_data/
 !data/LongBench_data/**
 # Allow .gitkeep files to preserve directory structure (must come after data/**)
@@ -144,7 +142,6 @@ data/**
 *.csv
 *.json
 # But allow JSON files in specific data subdirectories
-!data/lmeval_cache/**/*.json
 !data/LongBench_data/**/*.json
 *.pkl
 *.pickle
