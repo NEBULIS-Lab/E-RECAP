@@ -304,14 +304,6 @@ The `scripts/` directory contains helper scripts for common tasks:
 - **`run_ablation.sh`**: Run ablation study
   - `bash scripts/run_ablation.sh` - Generates ablation results
 
-## E-RECAP Summary
-
-E-RECAP implementation completed:
-- ✅ Saliency baseline computation
-- ✅ Token Pruner module training
-- ✅ Single GPU inference (2.6-3× speedup)
-- ✅ Multi-GPU inference (8-10× speedup)
-
 ## Key Features
 
 - **Cost-Aware Pruning**: Remove redundant tokens during prefill to reduce computation
@@ -321,10 +313,32 @@ E-RECAP implementation completed:
 
 ## Results
 
-- **Single GPU** (NVIDIA RTX 5880 Ada, 48GB): E-RECAP 2.6-3.0× prefill speedup
-- **Multi-GPU** (8× NVIDIA RTX 5880 Ada Generation, 48GB each): E-RECAP Up to 10× end-to-end speedup
-- **Memory Savings**: Up to 34% GPU memory reduction
-- **Performance**: E-RECAP Maintains comparable performance with 65% token pruning
+**Note:** The following results are for Qwen2-7B model in planning task phase (prefill only).
+
+### Single GPU Prefill Speedup
+
+| Keep Ratio | Average Speedup | Range |
+|------------|----------------|-------|
+| 0.9 | 1.43× | 1.38-1.50× |
+| 0.8 | 1.96× | 1.88-2.09× |
+| 0.7 | 2.48× | 2.35-2.66× |
+
+**Hardware:** NVIDIA RTX 5880 Ada (48GB), single GPU
+
+### Multi-GPU Prefill Speedup
+
+| Sequence Length | Speedup | Latency Reduction |
+|----------------|---------|-------------------|
+| 1024 | 12.45× | 92.0% |
+| 2048 | 13.12× | 92.4% |
+| 4096 | 14.84× | 93.3% |
+| 8192 | 17.23× | 94.2% |
+| 16384 | 26.73× | 96.3% |
+| 32768 | 39.69× | 97.5% |
+
+**Average:** 20.68× speedup, 94.3% latency reduction
+
+**Hardware:** 8× NVIDIA RTX 5880 Ada Generation (48GB each), keep_ratio=0.7
 
 ## Model Configuration
 
