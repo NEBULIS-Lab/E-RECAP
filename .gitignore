@@ -171,6 +171,7 @@ data/**
 results/
 outputs/
 logs/
+debug/
 # checkpoints/ - allow checkpoints directory structure, but ignore all files inside
 !checkpoints/
 checkpoints/**/*
