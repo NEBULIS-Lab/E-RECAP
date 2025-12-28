@@ -311,6 +311,7 @@ The `scripts/` directory contains helper scripts for common tasks:
 - **Multi-GPU Support**: Automatic distributed inference for long sequences
 - **Learnable Pruning Module**: Lightweight MLP for cost-aware token pruning
 
+<!--
 ## Results
 
 **Note:** The following results are for Qwen2-7B model. Prefill results are for planning task phase only. End-to-end results include both prefill and decode phases.
@@ -339,6 +340,7 @@ The `scripts/` directory contains helper scripts for common tasks:
 **Average:** 20.68× speedup, 94.3% latency reduction
 
 **Hardware:** 8× NVIDIA RTX 5880 Ada Generation (48GB each), keep_ratio=0.7
+-->
 
 <!--
 ### Single GPU End-to-End Speedup
