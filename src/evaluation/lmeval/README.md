@@ -1,6 +1,6 @@
-# Phase D: lm-eval-harness Integration for SDTP
+# Phase D: lm-eval-harness Integration for E-RECAP
 
-This module provides custom task and model wrappers for evaluating SDTP models using the lm-eval-harness framework.
+This module provides custom task and model wrappers for evaluating E-RECAP models using the lm-eval-harness framework.
 
 ## ⚠️ Important: Setup Phase Only
 
@@ -17,7 +17,7 @@ This module provides custom task and model wrappers for evaluating SDTP models u
 src/evaluation/lmeval/
 ├── __init__.py              # Package initialization
 ├── longbench_task.py        # Custom LongBench task for lm-eval-harness
-├── sdtp_model.py            # SDTP model wrapper for lm-eval-harness
+├── erecap_model.py            # E-RECAP model wrapper for lm-eval-harness
 ├── run_lmeval.py            # Main execution script (no inference)
 ├── longbench.yaml           # Task configuration template
 └── README.md                # This file
@@ -35,15 +35,15 @@ python3 src/evaluation/lmeval/run_lmeval.py \
     --output results/lmeval_narrativeqa_baseline_setup.json
 ```
 
-### With SDTP Pruning Module
+### With E-RECAP Pruning Module
 
 ```bash
-# Run setup with SDTP pruning
+# Run setup with E-RECAP pruning
 python3 src/evaluation/lmeval/run_lmeval.py \
     --task_config data/LongBench/narrativeqa.json \
     --model_name checkpoints/qwen2-7b-instruct \
     --pruner checkpoints/pruning_module.pt \
-    --output results/lmeval_narrativeqa_sdtp_setup.json
+    --output results/lmeval_narrativeqa_erecap_setup.json
 ```
 
 ### Using Script
@@ -52,8 +52,8 @@ python3 src/evaluation/lmeval/run_lmeval.py \
 # Baseline setup
 bash scripts/run_lmeval_setup.sh data/LongBench/narrativeqa.json baseline
 
-# SDTP setup
-bash scripts/run_lmeval_setup.sh data/LongBench/narrativeqa.json sdtp
+# E-RECAP setup
+bash scripts/run_lmeval_setup.sh data/LongBench/narrativeqa.json erecap
 ```
 
 ## 📋 Command-Line Arguments
@@ -72,7 +72,7 @@ bash scripts/run_lmeval_setup.sh data/LongBench/narrativeqa.json sdtp
 
 ```
 ============================================================
-[LM-EVAL] SDTP Evaluation Setup (No Inference)
+[LM-EVAL] E-RECAP Evaluation Setup (No Inference)
 ============================================================
 Task config: data/LongBench/narrativeqa.json
 Model: checkpoints/qwen2-7b-instruct
@@ -82,7 +82,7 @@ Output: results/lmeval_narrativeqa_baseline_setup.json
 ============================================================
 
 [Step 1] Initializing model wrapper...
-[SDTPModel] Initialized (no model loaded)
+[E-RECAPModel] Initialized (no model loaded)
   Model: checkpoints/qwen2-7b-instruct
   Pruning module: None (baseline)
   Device: cuda
@@ -99,7 +99,7 @@ Output: results/lmeval_narrativeqa_baseline_setup.json
 [LM-EVAL] LongBench task loaded: narrativeqa
 [LM-EVAL] Data path: data/LongBench/narrativeqa.json
 [LM-EVAL] Dataset size: 0 samples
-[LM-EVAL] Model wrapper: SDTPModel
+[LM-EVAL] Model wrapper: E-RECAPModel
 [LM-EVAL] Model config: checkpoints/qwen2-7b-instruct
 [LM-EVAL] Mode: Baseline (no pruning)
 [LM-EVAL] No inference executed in this setup phase.
@@ -113,7 +113,7 @@ Output: results/lmeval_narrativeqa_baseline_setup.json
 ============================================================
 
 Next steps:
-1. Implement actual model loading in SDTPModel
+1. Implement actual model loading in E-RECAPModel
 2. Implement inference methods (generate_until, loglikelihood)
 3. Run actual evaluation with lm-eval-harness
 ============================================================
@@ -131,9 +131,9 @@ Custom task class that adapts LongBench tasks to lm-eval-harness format.
 - `doc_to_target()`: Extract target answer
 - `evaluate()`: Setup-only evaluation (no inference)
 
-### 2. SDTPModel (`sdtp_model.py`)
+### 2. E-RECAPModel (`erecap_model.py`)
 
-Model wrapper that provides lm-eval-harness-compatible interface for SDTP models.
+Model wrapper that provides lm-eval-harness-compatible interface for E-RECAP models.
 
 **Key Methods:**
 - `generate_until()`: Generate text until stop sequences (setup phase: raises NotImplementedError)
@@ -143,12 +143,12 @@ Model wrapper that provides lm-eval-harness-compatible interface for SDTP models
 **Attributes:**
 - `model_name`: Model path or name
 - `pruning_module`: Path to pruning module checkpoint (None for baseline)
-- `is_sdtp()`: Check if configured for SDTP
+- `is_erecap()`: Check if configured for E-RECAP
 
 ### 3. run_lmeval.py
 
 Main execution script that:
-1. Initializes SDTP model wrapper (no actual loading)
+1. Initializes E-RECAP model wrapper (no actual loading)
 2. Loads LongBench task (data loading only)
 3. Runs setup evaluation (no inference)
 4. Saves setup result to JSON
@@ -162,7 +162,7 @@ The setup result JSON contains:
   "task": "narrativeqa",
   "task_path": "data/LongBench/narrativeqa.json",
   "dataset_size": 100,
-  "model": "SDTPModel(name=checkpoints/qwen2-7b-instruct, mode=Baseline, pruner=None)",
+  "model": "E-RECAPModel(name=checkpoints/qwen2-7b-instruct, mode=Baseline, pruner=None)",
   "status": "setup_completed",
   "message": "No inference executed in setup phase",
   "setup_info": {
@@ -180,7 +180,7 @@ The setup result JSON contains:
 In the actual evaluation phase, this framework will be integrated with lm-eval-harness:
 
 1. **Task Registration**: Register `LongBenchTask` with lm-eval-harness task registry
-2. **Model Integration**: Make `SDTPModel` compatible with lm-eval-harness LLM interface
+2. **Model Integration**: Make `E-RECAPModel` compatible with lm-eval-harness LLM interface
 3. **Evaluation Execution**: Run actual inference through lm-eval-harness CLI or API
 
 ## 🚧 TODO: Future Implementation
@@ -188,13 +188,13 @@ In the actual evaluation phase, this framework will be integrated with lm-eval-h
 ### Phase D (Actual Evaluation)
 
 1. **Model Loading**:
-   - Implement actual model loading in `SDTPModel.__init__()`
+   - Implement actual model loading in `E-RECAPModel.__init__()`
    - Load Qwen2-7B model and tokenizer
    - Load pruning module if provided
 
 2. **Inference Methods**:
-   - Implement `generate_until()` with SDTP pruning
-   - Implement `loglikelihood()` with SDTP pruning
+   - Implement `generate_until()` with E-RECAP pruning
+   - Implement `loglikelihood()` with E-RECAP pruning
    - Handle stop sequences and generation parameters
 
 3. **lm-eval-harness Integration**:
@@ -212,7 +212,7 @@ In the actual evaluation phase, this framework will be integrated with lm-eval-h
 
 - [x] Directory structure created
 - [x] LongBenchTask class implemented (no inference)
-- [x] SDTPModel wrapper implemented (no inference)
+- [x] E-RECAPModel wrapper implemented (no inference)
 - [x] Main script run_lmeval.py created (safe to run)
 - [x] Task configuration YAML created
 - [x] Shell script created with proper permissions

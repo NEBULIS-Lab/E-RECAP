@@ -1,2 +1,2 @@
-# Evaluation package for SDTP
+# Evaluation package for E-RECAP
 

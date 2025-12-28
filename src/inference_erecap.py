@@ -1,4 +1,4 @@
-# SDTP 推理（单机单卡的完整推理脚本）
+# E-RECAP 推理（单机单卡的完整推理脚本）
 
 import argparse
 import time
@@ -295,7 +295,7 @@ def apply_token_pruning(
 
 
 # ============================
-# Prefill with pruning (SDTP)
+# Prefill with pruning (E-RECAP)
 # ============================
 def prefill_with_pruning(
     model: AutoModelForCausalLM,
@@ -543,7 +543,7 @@ def get_hardware_info():
 
 def profile_lengths(lengths, config_name: str = "keep07", save_json: bool = True, benchmark_mode: str = "prefill"):
     """
-    Profile baseline vs SDTP for given sequence lengths.
+    Profile baseline vs E-RECAP for given sequence lengths.
     
     Args:
         lengths: List of sequence lengths to test
@@ -585,7 +585,7 @@ def profile_lengths(lengths, config_name: str = "keep07", save_json: bool = True
             },
             "run_info": {
                 "timestamp": time.strftime("%Y-%m-%dT%H:%M:%S"),
-                "script": "inference_sdtp.py",
+                "script": "inference_erecap.py",
                 "mode": "profile",
                 "benchmark_mode": benchmark_mode,
             }
@@ -619,7 +619,7 @@ def profile_lengths(lengths, config_name: str = "keep07", save_json: bool = True
                 try:
                     baseline_result = run_end2end_latency(
                         model, tokenizer, input_ids, attention_mask,
-                        use_sdtp=False,
+                        use_erecap=False,
                     )
                     baseline_prefill_t = baseline_result["prefill_time"]
                     baseline_decode_t = baseline_result["decode_time"]
@@ -634,53 +634,53 @@ def profile_lengths(lengths, config_name: str = "keep07", save_json: bool = True
                     baseline_memory = torch.cuda.max_memory_allocated() / (1024**3)  # GB
                     torch.cuda.reset_peak_memory_stats()
                 
-                # SDTP End2End - with error handling
+                # E-RECAP End2End - with error handling
                 try:
-                    sdtp_result = run_end2end_latency(
+                    erecap_result = run_end2end_latency(
                         model, tokenizer, input_ids, attention_mask,
-                        use_sdtp=True,
+                        use_erecap=True,
                         pruning_modules=pruners,
                         keep_ratio=config["keep_ratio"],
                         prune_layers=config["prune_layers"],
                     )
-                    sdtp_prefill_t = sdtp_result["prefill_time"]
-                    sdtp_decode_t = sdtp_result["decode_time"]
-                    sdtp_total_t = sdtp_result["total_time"]
-                    sdtp_kv_lens = sdtp_result["kv_lens_after_prefill"]
-                    pruning_stats = sdtp_result.get("pruning_stats", {})
+                    erecap_prefill_t = erecap_result["prefill_time"]
+                    erecap_decode_t = erecap_result["decode_time"]
+                    erecap_total_t = erecap_result["total_time"]
+                    erecap_kv_lens = erecap_result["kv_lens_after_prefill"]
+                    pruning_stats = erecap_result.get("pruning_stats", {})
                 except Exception as e:
-                    print(f"[Length {L}] SDTP End2End failed: {e}")
+                    print(f"[Length {L}] E-RECAP End2End failed: {e}")
                     raise  # Re-raise to be caught by outer try-except
                 
-                sdtp_memory = 0.0
+                erecap_memory = 0.0
                 if device.type == "cuda":
-                    sdtp_memory = torch.cuda.max_memory_allocated() / (1024**3)  # GB
+                    erecap_memory = torch.cuda.max_memory_allocated() / (1024**3)  # GB
                 
                 # Calculate speedups
-                prefill_speedup = baseline_prefill_t / sdtp_prefill_t if sdtp_prefill_t > 0 else float("inf")
-                decode_speedup = baseline_decode_t / sdtp_decode_t if sdtp_decode_t > 0 else float("inf")
-                total_speedup = baseline_total_t / sdtp_total_t if sdtp_total_t > 0 else float("inf")
+                prefill_speedup = baseline_prefill_t / erecap_prefill_t if erecap_prefill_t > 0 else float("inf")
+                decode_speedup = baseline_decode_t / erecap_decode_t if erecap_decode_t > 0 else float("inf")
+                total_speedup = baseline_total_t / erecap_total_t if erecap_total_t > 0 else float("inf")
                 
                 # Calculate KV cache reduction
-                if baseline_kv_lens and sdtp_kv_lens:
+                if baseline_kv_lens and erecap_kv_lens:
                     baseline_kv_avg = sum(baseline_kv_lens) / len(baseline_kv_lens) if baseline_kv_lens else L
-                    sdtp_kv_avg = sum(sdtp_kv_lens) / len(sdtp_kv_lens) if sdtp_kv_lens else L
-                    kv_reduction = (baseline_kv_avg - sdtp_kv_avg) / baseline_kv_avg if baseline_kv_avg > 0 else 0.0
+                    erecap_kv_avg = sum(erecap_kv_lens) / len(erecap_kv_lens) if erecap_kv_lens else L
+                    kv_reduction = (baseline_kv_avg - erecap_kv_avg) / baseline_kv_avg if baseline_kv_avg > 0 else 0.0
                 else:
                     kv_reduction = 0.0
                 
-                memory_reduction = (baseline_memory - sdtp_memory) / baseline_memory if baseline_memory > 0 else 0.0
+                memory_reduction = (baseline_memory - erecap_memory) / baseline_memory if baseline_memory > 0 else 0.0
                 
                 print(
                     f"[Length {L}] End2End Results:\n"
                     f"  Baseline: prefill={baseline_prefill_t:.4f}s, decode={baseline_decode_t:.4f}s, "
                     f"total={baseline_total_t:.4f}s\n"
-                    f"  SDTP:     prefill={sdtp_prefill_t:.4f}s, decode={sdtp_decode_t:.4f}s, "
-                    f"total={sdtp_total_t:.4f}s\n"
+                    f"  E-RECAP:  prefill={erecap_prefill_t:.4f}s, decode={erecap_decode_t:.4f}s, "
+                    f"total={erecap_total_t:.4f}s\n"
                     f"  Speedup:  prefill={prefill_speedup:.2f}x, decode={decode_speedup:.2f}x, "
                     f"total={total_speedup:.2f}x\n"
                     f"  KV Cache: baseline={baseline_kv_lens[0] if baseline_kv_lens else L}, "
-                    f"sdtp={sdtp_kv_lens[0] if sdtp_kv_lens else L}, "
+                    f"erecap={erecap_kv_lens[0] if erecap_kv_lens else L}, "
                     f"reduction={kv_reduction:.2%}"
                 )
                 
@@ -693,12 +693,12 @@ def profile_lengths(lengths, config_name: str = "keep07", save_json: bool = True
                         "memory_gb": baseline_memory,
                         "kv_lens_after_prefill": baseline_kv_lens,
                     },
-                    "sdtp": {
-                        "prefill_latency_seconds": sdtp_prefill_t,
-                        "decode_latency_seconds": sdtp_decode_t,
-                        "total_latency_seconds": sdtp_total_t,
-                        "memory_gb": sdtp_memory,
-                        "kv_lens_after_prefill": sdtp_kv_lens,
+                    "erecap": {
+                        "prefill_latency_seconds": erecap_prefill_t,
+                        "decode_latency_seconds": erecap_decode_t,
+                        "total_latency_seconds": erecap_total_t,
+                        "memory_gb": erecap_memory,
+                        "kv_lens_after_prefill": erecap_kv_lens,
                         "tokens_kept": pruning_stats.get("final_length", L),
                         "tokens_pruned": pruning_stats.get("total_tokens_pruned", 0),
                         "pruning_ratio": pruning_stats.get("total_tokens_pruned", 0) / L if L > 0 else 0.0,
@@ -735,8 +735,8 @@ def profile_lengths(lengths, config_name: str = "keep07", save_json: bool = True
                     baseline_memory = torch.cuda.max_memory_allocated() / (1024**3)  # GB
                     torch.cuda.reset_peak_memory_stats()
 
-                # SDTP: manual forward + pruning
-                def sdtp_fn(x, m):
+                # E-RECAP: manual forward + pruning
+                def erecap_fn(x, m):
                     logits, stats = prefill_with_pruning(
                         model, x, m, pruners, 
                         config["keep_ratio"],
@@ -746,25 +746,25 @@ def profile_lengths(lengths, config_name: str = "keep07", save_json: bool = True
                     )
                     return logits, stats
                 
-                sdtp_t = measure_latency(
-                    lambda x, m: sdtp_fn(x, m)[0],  # Only measure latency, not stats
+                erecap_t = measure_latency(
+                    lambda x, m: erecap_fn(x, m)[0],  # Only measure latency, not stats
                     input_ids,
                     attention_mask,
                 )
                 
                 # Get pruning stats from a separate run
-                _, pruning_stats = sdtp_fn(input_ids, attention_mask)
+                _, pruning_stats = erecap_fn(input_ids, attention_mask)
                 
-                sdtp_memory = 0.0
+                erecap_memory = 0.0
                 if device.type == "cuda":
-                    sdtp_memory = torch.cuda.max_memory_allocated() / (1024**3)  # GB
+                    erecap_memory = torch.cuda.max_memory_allocated() / (1024**3)  # GB
 
-                speedup = baseline_t / sdtp_t if sdtp_t > 0 else float("inf")
-                memory_reduction = (baseline_memory - sdtp_memory) / baseline_memory if baseline_memory > 0 else 0.0
+                speedup = baseline_t / erecap_t if erecap_t > 0 else float("inf")
+                memory_reduction = (baseline_memory - erecap_memory) / baseline_memory if baseline_memory > 0 else 0.0
                 
                 print(
                     f"[Length {L}] baseline={baseline_t:.4f}s ({baseline_memory:.2f}GB)  "
-                    f"sdtp={sdtp_t:.4f}s ({sdtp_memory:.2f}GB)  "
+                    f"erecap={erecap_t:.4f}s ({erecap_memory:.2f}GB)  "
                     f"speedup={speedup:.2f}x  memory_reduction={memory_reduction:.2%}"
                 )
                 
@@ -774,9 +774,9 @@ def profile_lengths(lengths, config_name: str = "keep07", save_json: bool = True
                         "latency_seconds": baseline_t,
                         "memory_gb": baseline_memory,
                     },
-                    "sdtp": {
-                        "latency_seconds": sdtp_t,
-                        "memory_gb": sdtp_memory,
+                    "erecap": {
+                        "latency_seconds": erecap_t,
+                        "memory_gb": erecap_memory,
                         "tokens_kept": pruning_stats["final_length"],
                         "tokens_pruned": pruning_stats["total_tokens_pruned"],
                         "pruning_ratio": pruning_stats["total_tokens_pruned"] / L if L > 0 else 0.0,
@@ -823,8 +823,8 @@ def profile_lengths(lengths, config_name: str = "keep07", save_json: bool = True
                 k: v["baseline"]["latency_seconds"]
                 for k, v in results_data["results"].items()
             }
-            sdtp_results = {
-                k: v["sdtp"]["latency_seconds"]
+            erecap_results = {
+                k: v["erecap"]["latency_seconds"]
                 for k, v in results_data["results"].items()
             }
         else:  # "end2end"
@@ -832,21 +832,21 @@ def profile_lengths(lengths, config_name: str = "keep07", save_json: bool = True
                 k: v["baseline"]["total_latency_seconds"]
                 for k, v in results_data["results"].items()
             }
-            sdtp_results = {
-                k: v["sdtp"]["total_latency_seconds"]
+            erecap_results = {
+                k: v["erecap"]["total_latency_seconds"]
                 for k, v in results_data["results"].items()
             }
         
         baseline_path = f"results/latency_baseline_{config_name}.json"
-        sdtp_path = f"results/latency_sdtp_{config_name}.json"
+        erecap_path = f"results/latency_erecap_{config_name}.json"
         
         with open(baseline_path, "w") as f:
             json.dump(baseline_results, f, indent=2)
         print(f"[OK] Baseline results saved to {baseline_path}")
         
-        with open(sdtp_path, "w") as f:
-            json.dump(sdtp_results, f, indent=2)
-        print(f"[OK] SDTP results saved to {sdtp_path}")
+        with open(erecap_path, "w") as f:
+            json.dump(erecap_results, f, indent=2)
+        print(f"[OK] E-RECAP results saved to {erecap_path}")
 
 
 # ============================
@@ -877,7 +877,7 @@ def parse_args():
     parser.add_argument(
         "--prompt",
         type=str,
-        default="Hello, SDTP!",
+        default="Hello, E-RECAP!",
     )
     parser.add_argument(
         "--lengths",

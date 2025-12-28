@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Validate LongBench v1 dataset files to ensure they match SDTP format.
+Validate LongBench v1 dataset files to ensure they match E-RECAP format.
 """
 
 import json

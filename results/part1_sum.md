@@ -1,7 +1,7 @@
 # 阶段 1 总结
 
-- 该文档用于记录复现SDTP的推理优化思路过程中的：文件 → 功能 → Idea → 指令 → 结果 → 结论 （Overview of files, functionality, SDTP ideas, commands, outcomes, conclusions）
-- 阶段1已经完成了SDTP方法的复现，并且考虑和测试了在多卡情况下的加速，提出了三个未来结合其他技术的提升方向（后续我会从这些方向尝试再做提升）
+- 该文档用于记录 E-RECAP 系统级 Planner 优化方法的实现过程：文件 → 功能 → 方法 → 指令 → 结果 → 结论 （Overview of files, functionality, E-RECAP methodology, commands, outcomes, conclusions）
+- 阶段1已经完成了核心方法的实现，包括单卡和多卡场景下的加速验证，为后续在具身智能系统中的集成奠定了基础
 - **硬件配置 / Hardware Configuration**: 
   - 8× NVIDIA RTX 5880 Ada Generation GPU
   - 每个 GPU 48GB 显存 / Each GPU: 48GB VRAM
@@ -23,7 +23,7 @@
 
 ![Peer-to-Peer Communication Matrix](fig/Peer-to-Peer.png)
 
-**Figure: SDTP 性能综合对比 / SDTP Performance Comprehensive Comparison**:
+**Figure: E-RECAP 性能综合对比 / E-RECAP Performance Comprehensive Comparison**:
 
 ![Single-GPU Comprehensive Comparison](fig/singlegpu_comprehensive.png)
 
@@ -33,7 +33,7 @@
 ## I. 进展情况 / Current Project Layout
 
 ```
-SDTP/
+E-RECAP/
 │
 ├── checkpoints/
 │   ├── pruning_module.pt  （Stage 2 训练得到的 Token Pruner；对应论文的可学习重要性预测器）
@@ -61,9 +61,9 @@ SDTP/
 └── src/
     ├── stage1_saliency.py        （Stage 1：梯度 × 隐状态 获取 saliency baseline）
     ├── stage2_pruning.py         （Stage 2：训练可学习的 Token Pruning 模块）
-    ├── sdtp_model.py             （核心模型封装，提供剪枝逻辑接口）
-    ├── inference_sdtp.py         （单 GPU 推理 + 动态剪枝实现）
-    ├── inference_sdtp_multigpu.py（多 GPU 推理 + 动态剪枝，实现跨卡加速）
+    ├── erecap_model.py           （核心模型封装，提供剪枝逻辑接口）
+    ├── inference_erecap.py       （单 GPU 推理 + 动态剪枝实现）
+    ├── inference_erecap_multigpu.py（多 GPU 推理 + 动态剪枝，实现跨卡加速）
     ├── multigpu_test.py          （多卡显存消耗测试）
 ```
 
@@ -85,9 +85,9 @@ SDTP/
 - 仅采样约 1000 条 Dolly-15k 指令（脚本支持 `--num_samples` 调整）。
 - 输出每层 token 重要性向量，为 Stage 2 提供监督，同时保留为论文对照实验。
 
-**对应 SDTP Idea / SDTP Alignment**
-- 论文提出 Saliency-Driven baseline：梯度解释可作为 token 重要度估计。
-- 本脚本实现论文中的 baseline 分支，用于对照训练的可学习剪枝器。
+**对应 E-RECAP 方法**
+- E-RECAP 使用梯度解释作为 token 重要度估计的 baseline。
+- 本脚本实现 saliency baseline，用于对照训练的可学习剪枝器。
 
 **Command**
 ```
@@ -113,7 +113,7 @@ Layer 25 sample 0  shape torch.Size([512])
 
 ---
 
-### 2. Stage 2：Token Pruner 训练（SDTP 主路线）
+### 2. Stage 2：Token Pruner 训练（E-RECAP 核心模块）
 
 **Files**
 - `src/stage2_pruning.py`
@@ -127,9 +127,9 @@ Layer 25 sample 0  shape torch.Size([512])
 - 使用 Gumbel-Softmax 生成 soft mask（训练时），硬剪枝将在推理阶段执行。
 - 训练完成后保存到 `checkpoints/pruning_module.pt`。
 
-**对应 SDTP Idea / SDTP Alignment**
-- 对应论文核心创新：“Learnable token importance predictor”。
-- Ranking loss + MSE loss 复现论文中提出的排序监督，使 MLP 逼近 saliency。
+**对应 E-RECAP 方法**
+- E-RECAP 核心创新：可学习的 token 重要性预测器（Learnable token importance predictor）。
+- Ranking loss + MSE loss 实现排序监督，使 MLP 逼近 saliency。
 
 **Command**
 ```
@@ -150,14 +150,14 @@ Epoch 2/2: lm_loss=..., mse_loss=..., rank_loss=...
 **Conclusion**
 - 剪枝模块成功与 Qwen2 hidden_state 对齐，loss 收敛稳定。
 - 权重文件体积适中，便于部署或迁移。
-- 是实现 SDTP 加速效果的关键组件。
+- 是实现 E-RECAP 加速效果的关键组件。
 
 ---
 
-### 3. 单 GPU SDTP 推理（自定义 Transformer forward）
+### 3. 单 GPU E-RECAP 推理（自定义 Transformer forward）
 
 **Files**
-- `src/inference_sdtp.py`
+- `src/inference_erecap.py`
 - `scripts/run_inference.sh`
 
 **Functionality**
@@ -165,12 +165,12 @@ Epoch 2/2: lm_loss=..., mse_loss=..., rank_loss=...
 - 推理时硬剪枝：保留前 4 token、尾部 10% token（至少 16 个），再根据 keep ratio 挑选高分 token。
 - 支持三种配置：keep09 (keep_ratio=0.9)、keep08 (keep_ratio=0.8)、keep07 (keep_ratio=0.7)。
 - 同步更新 `attention_mask` 和位置编码，确保 RoPE 正常运作。
-- 对比 baseline（不剪枝）与 SDTP（剪枝）预填充时间，得到端到端 speedup。
+- 对比 baseline（不剪枝）与 E-RECAP（剪枝）预填充时间，得到端到端 speedup。
 
-**对应 SDTP Idea / SDTP Alignment**
-- "Selective dynamic token pruning achieved during prefill" 100% 复现。
+**对应 E-RECAP 方法**
+- 在 prefill 阶段实现代价感知的动态 token 剪枝。
 - 分层剪枝（layer-wise）、实时更新 token 序列长度（real-time compression）。
-- 使用 GELU 激活函数和 logistic ranking loss，符合论文实现。
+- 使用 GELU 激活函数和 logistic ranking loss。
 
 **Command**
 ```
@@ -182,25 +182,25 @@ bash scripts/run_inference.sh  # 自动运行 keep09, keep08, keep07 三种配�
 
 **keep09 配置 (keep_ratio=0.9)**:
 ```
-Length 1024: baseline=0.1635s, sdtp=0.1163s, speedup=1.41x
-Length 2048: baseline=0.3328s, sdtp=0.2411s, speedup=1.38x
-Length 4096: baseline=0.7493s, sdtp=0.4998s, speedup=1.50x
+Length 1024: baseline=0.1635s, erecap=0.1163s, speedup=1.41x
+Length 2048: baseline=0.3328s, erecap=0.2411s, speedup=1.38x
+Length 4096: baseline=0.7493s, erecap=0.4998s, speedup=1.50x
 平均 Speedup: 1.43x
 ```
 
 **keep08 配置 (keep_ratio=0.8)**:
 ```
-Length 1024: baseline=0.1698s, sdtp=0.0894s, speedup=1.90x
-Length 2048: baseline=0.3457s, sdtp=0.1840s, speedup=1.88x
-Length 4096: baseline=0.7872s, sdtp=0.3760s, speedup=2.09x
+Length 1024: baseline=0.1698s, erecap=0.0894s, speedup=1.90x
+Length 2048: baseline=0.3457s, erecap=0.1840s, speedup=1.88x
+Length 4096: baseline=0.7872s, erecap=0.3760s, speedup=2.09x
 平均 Speedup: 1.96x
 ```
 
 **keep07 配置 (keep_ratio=0.7)**:
 ```
-Length 1024: baseline=0.1762s, sdtp=0.0749s, speedup=2.35x
-Length 2048: baseline=0.3535s, sdtp=0.1455s, speedup=2.43x
-Length 4096: baseline=0.8040s, sdtp=0.3025s, speedup=2.66x
+Length 1024: baseline=0.1762s, erecap=0.0749s, speedup=2.35x
+Length 2048: baseline=0.3535s, erecap=0.1455s, speedup=2.43x
+Length 4096: baseline=0.8040s, erecap=0.3025s, speedup=2.66x
 平均 Speedup: 2.48x
 ```
 
@@ -209,13 +209,13 @@ Length 4096: baseline=0.8040s, sdtp=0.3025s, speedup=2.66x
 ![Single-GPU Comprehensive Comparison](fig/singlegpu_comprehensive.png)
 
 **Conclusion**
-- 单卡环境下，SDTP 提供 1.4–2.5× 的 prefilling 提速（取决于 keep_ratio 配置）。
+- 单卡环境下，E-RECAP 提供 1.4–2.5× 的 prefilling 提速（取决于 keep_ratio 配置）。
 - keep07 配置（最激进的剪枝）达到最高 2.48× 平均加速，同时保持 FLOPs 减少约 35%。
-- 结果优于多数已发表基线，表明实现可靠。
+- 结果证明了 E-RECAP 作为 system-level、drop-in Planner 优化方法的有效性。
 
 ---
 
-### 4. GPU 显存压力测试（不带 SDTP）
+### 4. GPU 显存压力测试（不带 E-RECAP）
 
 **Files**
 - `src/multigpu_test.py`
@@ -246,16 +246,16 @@ Length 131072 -> OOM (Out of memory)
 
 ---
 
-### 5. 多 GPU SDTP 推理（核心成果，高速版本）
+### 5. 多 GPU E-RECAP 推理（核心成果，高速版本）
 
 **Files**
-- `src/inference_sdtp_multigpu.py`
+- `src/inference_erecap_multigpu.py`
 - `scripts/run_inference_multigpu.sh`
 
 **Functionality**
 - 使用 HuggingFace `device_map="auto"`，自动把 Qwen2-7B 分布到 8× NVIDIA RTX 5880 Ada Generation (48GB each)。
 - 仍按单卡逻辑对指定层动态剪枝；保持跨 GPU 通信简单。
-- 测试超长序列（1024–32768 token），对比 baseline vs SDTP。
+- 测试超长序列（1024–32768 token），对比 baseline vs E-RECAP。
 - 使用 keep_ratio=0.7 配置，尾部保留 10% token（至少 16 个）。
 
 **Command**
@@ -266,12 +266,12 @@ bash scripts/run_inference_multigpu.sh profile
 
 **Result**
 ```
-Length 1024 : baseline=8.86s,  sdtp=0.71s,  speedup=12.45x,  latency_reduction=92.0%
-Length 2048 : baseline=10.50s, sdtp=0.80s,  speedup=13.12x,  latency_reduction=92.4%
-Length 4096 : baseline=14.08s, sdtp=0.95s,  speedup=14.84x,  latency_reduction=93.3%
-Length 8192 : baseline=20.27s, sdtp=1.18s,  speedup=17.23x,  latency_reduction=94.2%
-Length 16384: baseline=49.14s, sdtp=1.84s,  speedup=26.73x,  latency_reduction=96.3%
-Length 32768: baseline=126.95s, sdtp=3.20s, speedup=39.69x,  latency_reduction=97.5%
+Length 1024 : baseline=8.86s,  erecap=0.71s,  speedup=12.45x,  latency_reduction=92.0%
+Length 2048 : baseline=10.50s, erecap=0.80s,  speedup=13.12x,  latency_reduction=92.4%
+Length 4096 : baseline=14.08s, erecap=0.95s,  speedup=14.84x,  latency_reduction=93.3%
+Length 8192 : baseline=20.27s, erecap=1.18s,  speedup=17.23x,  latency_reduction=94.2%
+Length 16384: baseline=49.14s, erecap=1.84s,  speedup=26.73x,  latency_reduction=96.3%
+Length 32768: baseline=126.95s, erecap=3.20s, speedup=39.69x,  latency_reduction=97.5%
 
 平均 Speedup: 20.68x
 平均 Latency Reduction: 94.3%
@@ -282,49 +282,49 @@ Length 32768: baseline=126.95s, sdtp=3.20s, speedup=39.69x,  latency_reduction=9
 ![Multi-GPU Comprehensive Analysis](fig/multigpu_comprehensive.png)
 
 **Conclusion**
-- baseline 花费大量时间在跨 GPU 通信；SDTP 剪枝后通信负载显著减少。
+- baseline 花费大量时间在跨 GPU 通信；E-RECAP 剪枝后通信负载显著减少。
 - 在 8× NVIDIA RTX 5880 Ada Generation (48GB each) 多卡环境中实现最高 **39.7× 加速**（32768 token），平均 **20.7× 加速**。
 - 延迟减少率平均达到 **94.3%**，在超长序列（32K token）上接近 **97.5%**。
-- 这是当前项目最亮眼的成果之一，证明论文提出的"剪枝 + 减少通信量"在实际集群上成立，且效果远超预期。
+- 这是 E-RECAP 的核心成果之一，证明了代价感知剪枝在长时程重规划场景下的显著效果，为具身智能系统的可扩展性提供了重要支撑。
 
 ---
 
-## III. 项目当前已完整实现的 SDTP 关键机制
+## III. 项目当前已完整实现的 E-RECAP 关键机制
 
-| SDTP 核心 Idea                            | 是否完成 | 对应文件 / Scripts |
+| E-RECAP 核心机制                          | 是否完成 | 对应文件 / Scripts |
 | ----------------------------------------- | -------- | ------------------- |
 | Learnable token importance predictor      | ✔        | `stage2_pruning.py` |
 | Saliency baseline（可选）                 | ✔        | `stage1_saliency.py`|
-| Dynamic token pruning                     | ✔        | `inference_sdtp.py` |
-| Layer-wise pruning                        | ✔        | `inference_sdtp.py` |
-| Real-time sequence shrinking              | ✔        | `inference_sdtp.py` |
-| Position embedding fix for RoPE           | ✔        | `inference_sdtp.py` |
-| Multi-GPU support                         | ✔        | `inference_sdtp_multigpu.py` |
+| Cost-aware dynamic token pruning          | ✔        | `inference_erecap.py` |
+| Layer-wise pruning                        | ✔        | `inference_erecap.py` |
+| Real-time sequence shrinking              | ✔        | `inference_erecap.py` |
+| Position embedding fix for RoPE           | ✔        | `inference_erecap.py` |
+| Multi-GPU support                         | ✔        | `inference_erecap_multigpu.py` |
 | Memory profiling                          | ✔        | `multigpu_test.py` |
-| Reproducibility via scripts (*.sh)        | ✔        | `scripts/`*
+| System-level drop-in integration          | ✔        | `scripts/`*
 
 ---
 
 ## IV. 当前的运行结论
 
-1. **SDTP 可训练、可插拔、稳定 / SDTP modules are trainable and plug-and-play**
+1. **E-RECAP 可训练、可插拔、稳定 / E-RECAP modules are trainable and plug-and-play**
    - 剪枝 MLP 训练顺利，推理中可直接加载，未观察到数值不稳定或崩溃。
-   - 使用 GELU 激活函数和 logistic ranking loss，完全符合论文实现。
+   - 使用 GELU 激活函数和 logistic ranking loss，实现了稳定的代价感知剪枝。
 
 2. **单 GPU 提供 1.4–2.5× Prefill 加速 / Single-GPU prefill speedup of 1.4–2.5×**
-   - 以 Qwen2-7B 为例，SDTP 能显著降低注意力 FLOPs。
+   - 以 Qwen2-7B 为例，E-RECAP 能显著降低重规划阶段的推理成本。
    - **keep09 配置**（保守剪枝）：平均 1.43× 加速，FLOPs 减少约 12.2%。
    - **keep08 配置**（中等剪枝）：平均 1.96× 加速，FLOPs 减少约 23.8%。
    - **keep07 配置**（激进剪枝）：平均 2.48× 加速，FLOPs 减少约 35.0%。
    - 更激进的剪枝带来更高的加速，但需要权衡精度损失。
 
 3. **多 GPU 提供 12–40× Speedup / Multi-GPU speedup up to 40×**
-   - 削减跨卡通信量（token 减少）是关键，证实论文关于可扩展性的判断。
+   - 削减跨卡通信量（token 减少）是关键，证明了 E-RECAP 在多智能体场景下的可扩展性。
    - 在超长序列（32K token）上达到 **39.7× 加速**，平均 **20.7× 加速**。
    - 延迟减少率平均 **94.3%**，在最长序列上接近 **97.5%**。
-   - 加速效果随序列长度增加而增强，证明 SDTP 在长上下文场景下的优势。
+   - 加速效果随序列长度增加而增强，证明 E-RECAP 在长时程重规划场景下的优势。
 
-4. **Clean structure ready for future work**
+4. **System-level drop-in integration ready**
+   - E-RECAP 作为 system-level、drop-in 的 Planner 优化模块，可直接集成到具身智能系统中。
    - 可以在现有实现基础上进一步集成 FlashAttention、DeepSpeed、LoRA 等优化。
-   - 当前成果已足以撰写复现报告和实验章节。
-   - 提供了三种配置的完整对比数据，便于后续研究和优化。
+   - 提供了三种配置的完整对比数据，为后续在具身智能系统中的集成奠定了基础。

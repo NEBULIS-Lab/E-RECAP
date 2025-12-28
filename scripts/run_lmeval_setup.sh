@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# lm-eval-harness setup script for SDTP (no inference execution)
+# lm-eval-harness setup script for E-RECAP (no inference execution)
 
 set -e
 
@@ -8,11 +8,11 @@ cd "$PROJECT_ROOT"
 
 # Default arguments
 TASK_CONFIG="${1:-data/LongBench/narrativeqa.json}"
-MODEL_TYPE="${2:-baseline}"  # "baseline" or "sdtp"
+MODEL_TYPE="${2:-baseline}"  # "baseline" or "erecap"
 OUTPUT_DIR="${3:-results}"
 
 # Determine pruning module path based on model type
-if [ "$MODEL_TYPE" == "sdtp" ]; then
+if [ "$MODEL_TYPE" == "erecap" ]; then
     PRUNER="checkpoints/pruning_module.pt"
 else
     PRUNER=""
@@ -23,7 +23,7 @@ TASK_NAME=$(basename "$TASK_CONFIG" .json)
 OUTPUT_FILE="$OUTPUT_DIR/lmeval_${TASK_NAME}_${MODEL_TYPE}_setup.json"
 
 echo "=========================================="
-echo "[LM-EVAL] SDTP Evaluation Setup"
+echo "[LM-EVAL] E-RECAP Evaluation Setup"
 echo "=========================================="
 echo "Task config: $TASK_CONFIG"
 echo "Model type: $MODEL_TYPE"

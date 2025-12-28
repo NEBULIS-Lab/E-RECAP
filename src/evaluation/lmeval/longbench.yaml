@@ -18,7 +18,7 @@ output_type: generate_until  # LongBench tasks use generation-based evaluation
 trainer: no_training  # No training data needed
 
 # Task metadata
-description: "Custom LongBench tasks for SDTP evaluation"
+description: "Custom LongBench tasks for E-RECAP evaluation"
 version: 1.0
 metrics: ["exact_match", "f1_score", "rouge_l"]  # Common LongBench metrics
 

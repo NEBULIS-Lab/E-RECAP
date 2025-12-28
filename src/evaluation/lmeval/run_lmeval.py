@@ -1,7 +1,7 @@
 """
-lm-eval-harness runner for SDTP (setup phase - no inference execution)
+lm-eval-harness runner for E-RECAP (setup phase - no inference execution)
 
-Main entry point for running lm-eval-harness evaluation with SDTP models.
+Main entry point for running lm-eval-harness evaluation with E-RECAP models.
 This script sets up the evaluation pipeline without executing actual inference.
 
 IMPORTANT: This is a setup/placeholder implementation.
@@ -24,7 +24,7 @@ project_root = os.path.dirname(
 sys.path.insert(0, project_root)
 
 from src.evaluation.lmeval.longbench_task import LongBenchTask
-from src.evaluation.lmeval.sdtp_model import SDTPModel
+from src.evaluation.lmeval.erecap_model import ERECAPModel
 
 
 def main():
@@ -33,13 +33,13 @@ def main():
     
     This function:
     1. Parses command-line arguments
-    2. Initializes SDTP model wrapper (no actual loading)
+    2. Initializes E-RECAP model wrapper (no actual loading)
     3. Loads LongBench task (data loading only)
     4. Runs setup evaluation (no inference)
     5. Saves setup result to JSON
     """
     parser = argparse.ArgumentParser(
-        description="lm-eval-harness runner for SDTP (setup phase - no inference)"
+        description="lm-eval-harness runner for E-RECAP (setup phase - no inference)"
     )
     parser.add_argument(
         "--task_config",
@@ -58,7 +58,7 @@ def main():
         type=str,
         default=None,
         help="Path to pruning module checkpoint (None for baseline, "
-             "e.g., checkpoints/pruning_module.pt for SDTP)"
+             "e.g., checkpoints/pruning_module.pt for E-RECAP)"
     )
     parser.add_argument(
         "--output",
@@ -78,7 +78,7 @@ def main():
     # Auto-generate output path if not provided
     if args.output is None:
         task_name = os.path.basename(args.task_config).replace(".json", "")
-        model_type = "sdtp" if args.pruner else "baseline"
+        model_type = "erecap" if args.pruner else "baseline"
         output_dir = "results"
         os.makedirs(output_dir, exist_ok=True)
         args.output = os.path.join(
@@ -87,7 +87,7 @@ def main():
         )
     
     print("=" * 60)
-    print("[LM-EVAL] SDTP Evaluation Setup (No Inference)")
+    print("[LM-EVAL] E-RECAP Evaluation Setup (No Inference)")
     print("=" * 60)
     print(f"Task config: {args.task_config}")
     print(f"Model: {args.model_name}")
@@ -103,10 +103,10 @@ def main():
         print("[Info] Example: data/LongBench/narrativeqa.json")
         return 1
     
-    # Initialize SDTP model wrapper (no actual loading)
+    # Initialize E-RECAP model wrapper (no actual loading)
     print("\n[Step 1] Initializing model wrapper...")
     try:
-        model = SDTPModel(
+        model = ERECAPModel(
             model_name=args.model_name,
             pruning_module=args.pruner,
             device=args.device
@@ -165,7 +165,7 @@ def main():
     print("[LM-EVAL] Setup completed successfully!")
     print("=" * 60)
     print("\nNext steps:")
-    print("1. Implement actual model loading in SDTPModel")
+    print("1. Implement actual model loading in ERECAPModel")
     print("2. Implement inference methods (generate_until, loglikelihood)")
     print("3. Run actual evaluation with lm-eval-harness")
     print("=" * 60)

@@ -1,5 +1,5 @@
 """
-LongBench evaluation script for SDTP
+LongBench evaluation script for E-RECAP
 Evaluates long-context QA tasks performance
 """
 import json
@@ -13,7 +13,7 @@ project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(_
 sys.path.insert(0, project_root)
 
 from datasets import load_dataset
-from src.evaluation.sdtp_wrapper import SDTPInference
+from src.evaluation.erecap_wrapper import ERECAPInference
 
 
 def evaluate_longbench(model_type, task, output_path, max_length=32768, num_samples=30):
@@ -23,7 +23,7 @@ def evaluate_longbench(model_type, task, output_path, max_length=32768, num_samp
     Only prefill performance + generation quality for long-context QA tasks.
     
     Args:
-        model_type: "baseline" or "sdtp"
+        model_type: "baseline" or "erecap"
         task: LongBench task name (e.g., "hotpotqa", "2wikimqa")
         output_path: Path to save results JSON
         max_length: Maximum context length
@@ -43,11 +43,11 @@ def evaluate_longbench(model_type, task, output_path, max_length=32768, num_samp
         print("[LongBench] Using baseline (no pruning).")
     else:
         pruner = "checkpoints/pruning_module.pt"
-        print("[LongBench] Using SDTP pruning module.")
+        print("[LongBench] Using E-RECAP pruning module.")
     
     # Initialize model
     try:
-        sd_model = SDTPInference(
+        sd_model = ERECAPInference(
             model_path="checkpoints/qwen2-7b-instruct",
             pruner_path=pruner,
             device="cuda",
@@ -118,12 +118,12 @@ def evaluate_longbench(model_type, task, output_path, max_length=32768, num_samp
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="LongBench evaluation for SDTP")
+    parser = argparse.ArgumentParser(description="LongBench evaluation for E-RECAP")
     parser.add_argument("--task", type=str, default="hotpotqa", 
                        help="LongBench task name")
     parser.add_argument("--type", type=str, default="baseline", 
-                       choices=["baseline", "sdtp"],
-                       help="Model type: baseline or sdtp")
+                       choices=["baseline", "erecap"],
+                       help="Model type: baseline or erecap")
     parser.add_argument("--out", type=str, default="results/longbench_hotpotqa.json",
                        help="Output JSON path")
     parser.add_argument("--num_samples", type=int, default=30,

@@ -2,7 +2,7 @@
 set -e
 
 echo "========================================"
-echo "       SDTP / Qwen2 Environment Check"
+echo "       E-RECAP / Qwen2 Environment Check"
 echo "========================================"
 echo
 

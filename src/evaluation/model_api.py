@@ -1,5 +1,5 @@
 """
-Unified Model API for SDTP Evaluation
+Unified Model API for E-RECAP Evaluation
 
 This module provides a unified inference interface that works for:
 - LongBench evaluation (Phase C2)
@@ -19,7 +19,7 @@ import json
 
 class ModelAPI:
     """
-    Unified inference API for Baseline and SDTP models.
+    Unified inference API for Baseline and E-RECAP models.
     
     This class provides a consistent interface for:
     1. LongBench evaluation (via generate() method)
@@ -85,7 +85,7 @@ class ModelAPI:
         
         if self.pruning_module_path:
             print(f"  Would load pruning module from: {self.pruning_module_path}")
-            print(f"  Mode: SDTP (with token pruning)")
+            print(f"  Mode: E-RECAP (with token pruning)")
         else:
             print(f"  Mode: Baseline (no pruning)")
         
@@ -123,7 +123,7 @@ class ModelAPI:
             
         TODO: Actual implementation should:
         1. Tokenize prompt
-        2. Run forward pass with SDTP pruning (if enabled)
+        2. Run forward pass with E-RECAP pruning (if enabled)
         3. Generate tokens using model.generate() or custom generation
         4. Decode and return generated text
         """
@@ -186,9 +186,9 @@ class ModelAPI:
         # if self.is_loaded and self.base_model is not None:
         #     self.base_model = self.base_model.to(self.device)
     
-    def is_sdtp(self) -> bool:
+    def is_erecap(self) -> bool:
         """
-        Check if this API is configured for SDTP (with pruning).
+        Check if this API is configured for E-RECAP (with pruning).
         
         Returns:
             True if pruning_module_path is set, False otherwise
@@ -207,6 +207,6 @@ class ModelAPI:
             "pruning_module_path": self.pruning_module_path,
             "device": self.device,
             "is_loaded": self.is_loaded,
-            "is_sdtp": self.is_sdtp()
+            "is_erecap": self.is_erecap()
         }
 

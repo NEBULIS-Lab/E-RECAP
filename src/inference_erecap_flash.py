@@ -1,27 +1,19 @@
-# src/inference_sdtp_accelerate_tp.py 
-# 一个不依赖 DeepSpeed 的 TP 版本，用 accelerate 做多卡并行。
-"""
-SDTP + HuggingFace Accelerate Tensor-Parallel skeleton.
-
-This script:
-  - builds a Qwen2-7B model with Accelerate device_map="auto";
-  - keeps SDTP pruning logic (similar to single-GPU version);
-  - is designed for profiling only, no training.
-"""
+# FlashAttention2 + Flash-Decoding 版本（单机单卡）
 
 import argparse
-import os
 import time
-from typing import Tuple, List
 
 import torch
 import torch.nn as nn
 from transformers import AutoModelForCausalLM, AutoTokenizer
-from accelerate import init_empty_weights, load_checkpoint_and_dispatch
 
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+# Local paths
 MODEL_PATH = "checkpoints/qwen2-7b-instruct"
 PRUNING_CKPT = "checkpoints/pruning_module.pt"
 
+# E-RECAP config (should match Stage2)
 MAX_NEW_TOKENS = 128
 PRUNE_LAYERS = [4, 7, 10, 13, 16, 19, 22, 25]
 KEEP_RATIO = 0.7
@@ -29,10 +21,9 @@ MIN_HEAD_TOKENS = 4
 MIN_TAIL_TOKENS = 16
 
 
-# ------------------------
-# TokenPruningModule
-# ------------------------
 class TokenPruningModule(nn.Module):
+    """Small MLP that outputs a scalar importance score per token."""
+
     def __init__(self, hidden_size: int):
         super().__init__()
         self.scorer = nn.Sequential(
@@ -42,40 +33,24 @@ class TokenPruningModule(nn.Module):
         )
 
     def forward(self, hidden_states: torch.Tensor) -> torch.Tensor:
-        if hidden_states.dim() == 3:
-            hidden_states = hidden_states.squeeze(0)
+        """
+        hidden_states: [seq_len, hidden] or [batch, seq_len, hidden]
+        return: [seq_len]
+        """
         return self.scorer(hidden_states).squeeze(-1)
 
 
-# ------------------------
-# Accelerate TP helpers
-# ------------------------
-def load_accelerate_model_and_pruners():
+def load_model_and_pruners_flash():
     """
-    Build Qwen2-7B under Accelerate with device_map="auto".
-
-    Note:
-      - This assumes a HF-style checkpoint layout is available.
-      - For your current project, using from_pretrained with device_map="auto"
-        might be enough; here we show the more explicit pattern.
+    Load Qwen2 with FlashAttention2 enabled and attach E-RECAP pruning modules.
     """
-    # Empty-init prevents allocating full weights on CPU first
-    with init_empty_weights():
-        model = AutoModelForCausalLM.from_pretrained(
-            MODEL_PATH,
-            torch_dtype=torch.float16,
-            device_map=None,
-            local_files_only=True,
-        )
-
-    # Dispatch across all visible GPUs
-    device_map = "auto"
-    model = load_checkpoint_and_dispatch(
-        model,
+    model = AutoModelForCausalLM.from_pretrained(
         MODEL_PATH,
-        device_map=device_map,
-        dtype=torch.float16,
-    )
+        torch_dtype=torch.float16,
+        attn_implementation="flash_attention_2",  # enable FlashAttention2
+        device_map=None,
+        local_files_only=True,
+    ).to(device)
 
     tokenizer = AutoTokenizer.from_pretrained(
         MODEL_PATH,
@@ -83,33 +58,36 @@ def load_accelerate_model_and_pruners():
     )
 
     hidden_size = model.config.hidden_size
+
     pruning_modules = nn.ModuleDict(
         {str(i): TokenPruningModule(hidden_size) for i in PRUNE_LAYERS}
     )
+
     state_dict = torch.load(PRUNING_CKPT, map_location="cpu")
     pruning_modules.load_state_dict(state_dict)
 
-    # For simplicity we keep pruners on cuda:0
-    device0 = torch.device("cuda:0")
-    pruning_modules.to(device0)
+    pruning_modules.to(device)
     pruning_modules.half()
     pruning_modules.eval()
     for p in pruning_modules.parameters():
         p.requires_grad = False
 
-    return model, tokenizer, pruning_modules, device0
+    return model, tokenizer, pruning_modules
 
 
-# ------------------------
-# Pruning logic
-# ------------------------
 def apply_token_pruning(
     hidden_states: torch.Tensor,
     pruning_module: nn.Module,
     keep_ratio: float,
-) -> Tuple[torch.Tensor, torch.Tensor]:
+):
+    """
+    hidden_states: [1, seq_len, hidden]
+    return: pruned_hidden_states, kept_indices
+    """
     seq_len = hidden_states.size(1)
-    scores = pruning_module(hidden_states.to(pruning_module.scorer[0].weight.device))
+
+    flat = hidden_states.squeeze(0)
+    scores = pruning_module(flat)
 
     base_keep = set(range(min(MIN_HEAD_TOKENS, seq_len)))
     for i in range(max(0, seq_len - MIN_TAIL_TOKENS), seq_len):
@@ -119,8 +97,8 @@ def apply_token_pruning(
     target_keep = min(target_keep, seq_len)
 
     _, sorted_idx = torch.topk(scores, k=seq_len)
-    selected: List[int] = []
 
+    selected = []
     for idx in sorted_idx.tolist():
         if idx in base_keep:
             selected.append(idx)
@@ -135,37 +113,28 @@ def apply_token_pruning(
         dtype=torch.long,
     )
     pruned_hidden = hidden_states[:, index_tensor, :]
+
     return pruned_hidden, index_tensor
 
 
-# ------------------------
-# Prefill with Accelerate TP + SDTP
-# ------------------------
-def prefill_with_sdtp_accel(
+def prefill_with_pruning_flash(
     model: AutoModelForCausalLM,
     input_ids: torch.Tensor,
     pruning_modules: nn.ModuleDict,
     keep_ratio: float,
-) -> torch.Tensor:
+):
     """
-    input_ids is placed on cuda:0, but model is sharded across devices.
-    Accelerate will route tensors as needed internally.
+    Manual forward over all transformer layers with E-RECAP pruning.
+    FlashAttention2 is used internally by each layer (through attn_implementation).
     """
-    # embed on the first device
-    first_device = next(model.parameters()).device
-    input_ids = input_ids.to(first_device)
-
     hidden_states = model.model.embed_tokens(input_ids)
 
     for layer_idx, layer in enumerate(model.model.layers):
-        device_layer = next(layer.parameters()).device
-        hidden_states = hidden_states.to(device_layer)
-
         position_ids = torch.arange(
             0,
             hidden_states.size(1),
             dtype=torch.long,
-            device=device_layer,
+            device=hidden_states.device,
         ).unsqueeze(0)
 
         outputs = layer(
@@ -184,51 +153,47 @@ def prefill_with_sdtp_accel(
                 keep_ratio,
             )
 
-    last_device = next(model.lm_head.parameters()).device
-    hidden_states = hidden_states.to(last_device)
     hidden_states = model.model.norm(hidden_states)
     logits = model.lm_head(hidden_states)
     return logits
 
 
-def baseline_prefill_accel(
+def baseline_prefill_flash(
     model: AutoModelForCausalLM,
     input_ids: torch.Tensor,
-) -> torch.Tensor:
-    first_device = next(model.parameters()).device
-    input_ids = input_ids.to(first_device)
+    attention_mask: torch.Tensor,
+):
+    model_inputs = model.prepare_inputs_for_generation(
+        input_ids=input_ids,
+        attention_mask=attention_mask,
+    )
     with torch.no_grad():
-        outputs = model(
-            input_ids=input_ids,
-            attention_mask=torch.ones_like(input_ids, device=input_ids.device),
-            use_cache=False,
-        )
+        outputs = model(**model_inputs)
     return outputs.logits
 
 
-# ------------------------
-# Timing utilities
-# ------------------------
 def measure_latency(fn, *args, warmup: int = 1, runs: int = 3) -> float:
     for _ in range(warmup):
         _ = fn(*args)
-        torch.cuda.synchronize()
+        if device.type == "cuda":
+            torch.cuda.synchronize()
 
     times = []
     for _ in range(runs):
-        torch.cuda.synchronize()
+        if device.type == "cuda":
+            torch.cuda.synchronize()
         start = time.perf_counter()
         _ = fn(*args)
-        torch.cuda.synchronize()
+        if device.type == "cuda":
+            torch.cuda.synchronize()
         end = time.perf_counter()
         times.append(end - start)
+
     return sum(times) / len(times)
 
 
-def build_dummy_input(tokenizer: AutoTokenizer, length: int, device: torch.device):
-    base_ids = tokenizer("Hello from SDTP + Accelerate TP.", return_tensors="pt")[
-        "input_ids"
-    ][0]
+def build_dummy_input(tokenizer: AutoTokenizer, length: int):
+    base_ids = tokenizer("Hello, this is a test.", return_tensors="pt")["input_ids"][0]
     if base_ids.size(0) >= length:
         ids = base_ids[:length]
     else:
@@ -236,52 +201,62 @@ def build_dummy_input(tokenizer: AutoTokenizer, length: int, device: torch.devic
         ids = base_ids.repeat(repeat)[:length]
 
     input_ids = ids.unsqueeze(0).to(device)
-    return input_ids
+    attention_mask = torch.ones_like(input_ids, device=device)
+    return input_ids, attention_mask
 
 
-# ------------------------
-# Profiling
-# ------------------------
-def profile_lengths(args):
-    model, tokenizer, pruners, device0 = load_accelerate_model_and_pruners()
+def profile_lengths_flash(lengths, keep_ratio: float):
+    model, tokenizer, pruners = load_model_and_pruners_flash()
     model.eval()
 
-    if int(os.environ.get("RANK", "0")) == 0:
-        print("[Accel-SDTP] Profiling lengths:", args.lengths)
-
-    for L in args.lengths:
-        input_ids = build_dummy_input(tokenizer, L, device0)
+    print("[Flash E-RECAP] Profiling lengths:", lengths)
+    for L in lengths:
+        input_ids, attention_mask = build_dummy_input(tokenizer, L)
         try:
-            baseline_t = measure_latency(
-                lambda x: baseline_prefill_accel(model, x),
+            base_t = measure_latency(
+                lambda x, m: baseline_prefill_flash(model, x, m),
+                input_ids,
+                attention_mask,
+            )
+            erecap_t = measure_latency(
+                lambda x: prefill_with_pruning_flash(model, x, pruners, keep_ratio),
                 input_ids,
             )
-            sdtp_t = measure_latency(
-                lambda x: prefill_with_sdtp_accel(model, x, pruners, args.keep_ratio),
-                input_ids,
-            )
-            speedup = baseline_t / sdtp_t if sdtp_t > 0 else float("inf")
+            speed = base_t / erecap_t if erecap_t > 0 else float("inf")
             print(
-                f"[Length {L}] Accel-baseline={baseline_t:.4f}s  "
-                f"Accel-SDTP={sdtp_t:.4f}s  speedup={speedup:.2f}x"
+                f"[Length {L}] baseline={base_t:.4f}s  "
+                f"flash_erecap={erecap_t:.4f}s  speedup={speed:.2f}x"
             )
         except torch.cuda.OutOfMemoryError:
-            print(f"[Length {L}] OOM under Accelerate TP, skipped.")
+            print(f"[Length {L}] OOM on GPU, skip.")
         finally:
-            del input_ids
-            torch.cuda.empty_cache()
+            del input_ids, attention_mask
+            if device.type == "cuda":
+                torch.cuda.empty_cache()
 
 
-# ------------------------
-# CLI
-# ------------------------
+def generate_text_flash(
+    model: AutoModelForCausalLM,
+    tokenizer: AutoTokenizer,
+    prompt: str,
+) -> str:
+    inputs = tokenizer(prompt, return_tensors="pt").to(device)
+    with torch.no_grad():
+        out_ids = model.generate(
+            **inputs,
+            max_new_tokens=MAX_NEW_TOKENS,
+            do_sample=False,
+        )
+    return tokenizer.decode(out_ids[0], skip_special_tokens=True)
+
+
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--mode",
         type=str,
         default="profile",
-        choices=["profile"],
+        choices=["profile", "generate"],
     )
     parser.add_argument(
         "--lengths",
@@ -294,15 +269,27 @@ def parse_args():
         type=float,
         default=KEEP_RATIO,
     )
+    parser.add_argument(
+        "--prompt",
+        type=str,
+        default="Hello, E-RECAP with FlashAttention2!",
+    )
     return parser.parse_args()
 
 
 def main():
     args = parse_args()
+
     if args.mode == "profile":
-        profile_lengths(args)
-    else:
-        print(f"Mode {args.mode} is not implemented yet.")
+        profile_lengths_flash(args.lengths, args.keep_ratio)
+        return
+
+    if args.mode == "generate":
+        model, tokenizer, pruners = load_model_and_pruners_flash()
+        model.eval()
+        text = generate_text_flash(model, tokenizer, args.prompt)
+        print(text)
+        return
 
 
 if __name__ == "__main__":

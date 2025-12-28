@@ -129,13 +129,18 @@ dmypy.json
 .pyre/
 
 # Data files and directories
-# Ignore all contents in data/ directory
-data/*
+# Ignore all contents in data/ directory (including subdirectories)
+data/**
 # But allow specific subdirectories to be tracked
 !data/lmeval_cache/
 !data/lmeval_cache/**
 !data/LongBench_data/
 !data/LongBench_data/**
+# Allow .gitkeep files to preserve directory structure (must come after data/**)
+!data/raw/
+!data/raw/.gitkeep
+!data/LongBench/
+!data/LongBench/.gitkeep
 *.csv
 *.json
 # But allow JSON files in specific data subdirectories
@@ -162,14 +167,14 @@ data/*
 *.weights
 
 # Results and outputs
-# results/ - keep all results files (not ignored)
-# Allow JSON files in results/ directory
-!results/*.json
+# All local generated files should be ignored
+results/
 outputs/
 logs/
-# checkpoints/ - allow checkpoints directory, but only .pt files inside
+# checkpoints/ - allow checkpoints directory structure, but ignore all files inside
 !checkpoints/
-!checkpoints/**/*.pt
+checkpoints/**/*
+!checkpoints/**/.gitkeep
 runs/
 wandb/
 tensorboard/
@@ -272,8 +277,6 @@ secrets.json
 # Project documentation files and metadata files
 # original paper 参考论文
 paper.txt
-# reproduction plan 复现计划
-sdtp_reproduction_plan.md
 # project metadata 项目网页报告
 stdp-project-2025.json
 # phase 2 progress 阶段2进度记录
@@ -291,3 +294,17 @@ error.md
 PAPER_IMPLEMENTATION_ANALYSIS.md
 PRUNING_VERIFICATION_ANALYSIS.md
 IMPLEMENTATION_VS_PAPER_COMPARISON.md
+
+# Root directory files - only README.md, requirements.txt, and LICENSE should be tracked
+# Ignore all other root-level files
+new_idea.txt
+new_plan.txt
+ref_paper.pdf
+before_idea.pdf
+process.md
+END2END_ERROR_ANALYSIS.md
+END2END_FIX_SUMMARY.md
+IMPLEMENTATION_SUMMARY.md
+
+# Paper directory
+paper/

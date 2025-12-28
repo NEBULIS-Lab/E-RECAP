@@ -12,7 +12,7 @@ def main():
     parser.add_argument("--model", type=str, default="checkpoints/qwen2-7b-instruct")
     parser.add_argument("--pruning_module", type=str, default=None)
     parser.add_argument("--output", type=str, default="results/longbench_result.json")
-    parser.add_argument("--mode", type=str, default="baseline", choices=["baseline", "sdtp"])
+    parser.add_argument("--mode", type=str, default="baseline", choices=["baseline", "erecap"])
     parser.add_argument("--do_inference", action="store_true")
     parser.add_argument("--max_samples", type=int, default=None)
     parser.add_argument("--save_predictions", action="store_true")

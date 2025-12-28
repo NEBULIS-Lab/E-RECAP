@@ -1,6 +1,6 @@
 """
-SDTP Inference Wrapper for Evaluation
-Provides a unified interface for baseline and SDTP inference
+E-RECAP Inference Wrapper for Evaluation
+Provides a unified interface for baseline and E-RECAP inference
 """
 import sys
 import os
@@ -13,12 +13,12 @@ sys.path.insert(0, src_dir)
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
-# Import from inference_sdtp module
-from inference_sdtp import load_model_and_pruners, generate_text as baseline_generate_text
+# Import from inference_erecap module
+from inference_erecap import load_model_and_pruners, generate_text
 
 
-class SDTPInference:
-    """Wrapper class for SDTP inference evaluation"""
+class ERECAPInference:
+    """Wrapper class for E-RECAP inference evaluation"""
     
     def __init__(self, model_path="checkpoints/qwen2-7b-instruct", 
                  pruner_path=None, device="cuda", use_flash=False):
@@ -36,8 +36,23 @@ class SDTPInference:
         
         # Load model and tokenizer
         if pruner_path:
-            self.model, self.tokenizer, self.pruners = load_model_and_pruners()
-            self.use_pruning = True
+            # Temporarily set global PRUNING_CKPT and MODEL_PATH
+            # Note: load_model_and_pruners uses global MODEL_PATH and PRUNING_CKPT
+            import inference_erecap as inf_module
+            original_ckpt = getattr(inf_module, 'PRUNING_CKPT', None)
+            original_model_path = getattr(inf_module, 'MODEL_PATH', None)
+            if hasattr(inf_module, 'PRUNING_CKPT'):
+                inf_module.PRUNING_CKPT = pruner_path
+            if hasattr(inf_module, 'MODEL_PATH'):
+                inf_module.MODEL_PATH = model_path
+            try:
+                self.model, self.tokenizer, self.pruners = load_model_and_pruners()
+                self.use_pruning = True
+            finally:
+                if original_ckpt is not None:
+                    inf_module.PRUNING_CKPT = original_ckpt
+                if original_model_path is not None:
+                    inf_module.MODEL_PATH = original_model_path
         else:
             # Baseline mode: load model without pruner
             self.model = AutoModelForCausalLM.from_pretrained(
@@ -58,7 +73,7 @@ class SDTPInference:
     def generate(self, prompt: str, max_new_tokens: int = 128) -> str:
         """Generate text from prompt"""
         if self.use_pruning:
-            # Use SDTP pruning path
+            # Use E-RECAP pruning path
             inputs = self.tokenizer(prompt, return_tensors="pt").to(self.device)
             input_ids = inputs["input_ids"]
             attention_mask = inputs.get("attention_mask", torch.ones_like(input_ids))
@@ -75,6 +90,13 @@ class SDTPInference:
                 )
             return self.tokenizer.decode(out_ids[0], skip_special_tokens=True)
         else:
-            # Baseline generation
-            return baseline_generate_text(self.model, self.tokenizer, prompt)
+            # Baseline generation - use simple generate method
+            inputs = self.tokenizer(prompt, return_tensors="pt").to(self.device)
+            with torch.no_grad():
+                out_ids = self.model.generate(
+                    **inputs,
+                    max_new_tokens=max_new_tokens,
+                    do_sample=False,
+                )
+            return self.tokenizer.decode(out_ids[0], skip_special_tokens=True)
 

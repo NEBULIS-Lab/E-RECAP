@@ -1,10 +1,10 @@
-# LongBench v1 Dataset for SDTP
+# LongBench v1 Dataset for E-RECAP
 
-This directory contains LongBench v1 datasets in the unified JSON format for SDTP evaluation.
+This directory contains LongBench v1 datasets in the unified JSON format for E-RECAP evaluation.
 
 ## Dataset Files
 
-All datasets have been downloaded from Hugging Face (`THUDM/LongBench`) and converted to the SDTP format:
+All datasets have been downloaded from Hugging Face (`THUDM/LongBench`) and converted to the E-RECAP format:
 
 - `narrativeqa.json` - 200 items
 - `qasper.json` - 200 items
@@ -46,9 +46,9 @@ Run the validation script to check all files:
 python3 scripts/validate_longbench_data.py
 ```
 
-## Usage in SDTP
+## Usage in E-RECAP
 
-To use these datasets with the SDTP evaluation scripts:
+To use these datasets with the E-RECAP evaluation scripts:
 
 ```bash
 # LongBench evaluation
@@ -68,7 +68,7 @@ python3 scripts/download_longbench_v1.py --overwrite
 
 This script:
 1. Downloads datasets from Hugging Face (`THUDM/LongBench`)
-2. Converts to SDTP unified format
+2. Converts to E-RECAP unified format
 3. Validates format correctness
 4. Saves to `data/LongBench_data/`
 

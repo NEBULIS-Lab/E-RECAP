@@ -1,5 +1,5 @@
 """
-Latency curve plotting script for SDTP
+Latency curve plotting script for E-RECAP
 Generates latency, speedup, and FLOPs reduction curves
 """
 import json
@@ -34,7 +34,7 @@ def load_json(path):
                 # Combined format: extract baseline latency
                 latency_data[int(length_str)] = result["baseline"]["latency_seconds"]
             elif isinstance(result, dict) and "latency_seconds" in result:
-                # Separate baseline/sdtp format
+                # Separate baseline/erecap format
                 latency_data[int(length_str)] = result["latency_seconds"]
             else:
                 # Fallback: assume it's a number
@@ -49,27 +49,27 @@ def load_json(path):
         return {int(k): float(v) for k, v in data.items()}, None
 
 
-def plot_latency(baseline, sdtp, out_path):
+def plot_latency(baseline, erecap, out_path):
     """
     Plot prefill latency vs sequence length
     
     Args:
         baseline: Dict mapping sequence length to latency (seconds)
-        sdtp: Dict mapping sequence length to latency (seconds)
+        erecap: Dict mapping sequence length to latency (seconds)
         out_path: Output file path
     """
     # Get common lengths
-    lengths = sorted(set(baseline.keys()) & set(sdtp.keys()))
+    lengths = sorted(set(baseline.keys()) & set(erecap.keys()))
     if not lengths:
         print("[Error] No common sequence lengths found")
         return
     
     base_vals = [baseline[L] for L in lengths]
-    sdtp_vals = [sdtp[L] for L in lengths]
+    erecap_vals = [erecap[L] for L in lengths]
     
     plt.figure(figsize=(10, 6))
     plt.plot(lengths, base_vals, marker='o', linewidth=2, label="Baseline", markersize=8)
-    plt.plot(lengths, sdtp_vals, marker='s', linewidth=2, label="SDTP", markersize=8)
+    plt.plot(lengths, erecap_vals, marker='s', linewidth=2, label="E-RECAP", markersize=8)
     plt.xlabel("Sequence Length (tokens)", fontsize=12)
     plt.ylabel("Prefill Latency (seconds)", fontsize=12)
     plt.title("Prefill Latency vs Sequence Length", fontsize=14, fontweight='bold')
@@ -84,29 +84,29 @@ def plot_latency(baseline, sdtp, out_path):
     print(f"[OK] Saved {out_path}")
 
 
-def plot_speedup(baseline, sdtp, out_path):
+def plot_speedup(baseline, erecap, out_path):
     """
     Plot speedup vs sequence length
     
     Args:
         baseline: Dict mapping sequence length to latency (seconds)
-        sdtp: Dict mapping sequence length to latency (seconds)
+        erecap: Dict mapping sequence length to latency (seconds)
         out_path: Output file path
     """
     # Get common lengths
-    lengths = sorted(set(baseline.keys()) & set(sdtp.keys()))
+    lengths = sorted(set(baseline.keys()) & set(erecap.keys()))
     if not lengths:
         print("[Error] No common sequence lengths found")
         return
     
-    speedups = [baseline[L] / sdtp[L] if sdtp[L] > 0 else 0 for L in lengths]
+    speedups = [baseline[L] / erecap[L] if erecap[L] > 0 else 0 for L in lengths]
     
     plt.figure(figsize=(10, 6))
     plt.plot(lengths, speedups, marker='o', linewidth=2, label="Speedup", 
              markersize=8, color='green')
     plt.axhline(y=1.0, color='r', linestyle='--', alpha=0.5, label='Baseline (1x)')
     plt.xlabel("Sequence Length (tokens)", fontsize=12)
-    plt.ylabel("Speedup (Baseline / SDTP)", fontsize=12)
+    plt.ylabel("Speedup (Baseline / E-RECAP)", fontsize=12)
     plt.title("Speedup vs Sequence Length", fontsize=14, fontweight='bold')
     plt.grid(True, alpha=0.3)
     plt.legend(fontsize=11)
@@ -126,7 +126,7 @@ def estimate_flops(length, keep_ratio=0.7, hidden_size=3584, num_layers=28, num_
     
     Args:
         length: Sequence length
-        keep_ratio: Token keep ratio (for SDTP)
+        keep_ratio: Token keep ratio (for E-RECAP)
         hidden_size: Model hidden size
         num_layers: Number of transformer layers
         num_heads: Number of attention heads
@@ -149,18 +149,18 @@ def estimate_flops(length, keep_ratio=0.7, hidden_size=3584, num_layers=28, num_
     return total_flops
 
 
-def plot_flops(baseline, sdtp, out_path, keep_ratio=0.7):
+def plot_flops(baseline, erecap, out_path, keep_ratio=0.7):
     """
     Plot estimated FLOPs reduction
     
     Args:
         baseline: Dict mapping sequence length to latency (for reference)
-        sdtp: Dict mapping sequence length to latency (for reference)
+        erecap: Dict mapping sequence length to latency (for reference)
         out_path: Output file path
-        keep_ratio: Average token keep ratio for SDTP
+        keep_ratio: Average token keep ratio for E-RECAP
     """
     # Get common lengths
-    lengths = sorted(set(baseline.keys()) & set(sdtp.keys()))
+    lengths = sorted(set(baseline.keys()) & set(erecap.keys()))
     if not lengths:
         print("[Error] No common sequence lengths found")
         return
@@ -168,26 +168,26 @@ def plot_flops(baseline, sdtp, out_path, keep_ratio=0.7):
     # Estimate FLOPs
     base_flops = [estimate_flops(L) for L in lengths]
     
-    # SDTP FLOPs: tokens are pruned progressively, use average keep ratio
+    # E-RECAP FLOPs: tokens are pruned progressively, use average keep ratio
     # For simplicity, use keep_ratio for all layers (in reality it's progressive)
-    sdtp_flops = [estimate_flops(int(L * keep_ratio)) for L in lengths]
+    erecap_flops = [estimate_flops(int(L * keep_ratio)) for L in lengths]
     
     # Normalize to first value for better visualization
     if base_flops[0] > 0:
         base_flops_norm = [f / base_flops[0] for f in base_flops]
-        sdtp_flops_norm = [f / base_flops[0] for f in sdtp_flops]
+        erecap_flops_norm = [f / base_flops[0] for f in erecap_flops]
     else:
         base_flops_norm = base_flops
-        sdtp_flops_norm = sdtp_flops
+        erecap_flops_norm = erecap_flops
     
-    reduction = [(1 - sdtp_flops[i] / base_flops[i]) * 100 
+    reduction = [(1 - erecap_flops[i] / base_flops[i]) * 100 
                  for i in range(len(lengths))]
     
     plt.figure(figsize=(10, 6))
     plt.plot(lengths, base_flops_norm, marker='o', linewidth=2, 
              label="Baseline FLOPs", markersize=8)
-    plt.plot(lengths, sdtp_flops_norm, marker='s', linewidth=2, 
-             label=f"SDTP FLOPs (keep_ratio={keep_ratio})", markersize=8)
+    plt.plot(lengths, erecap_flops_norm, marker='s', linewidth=2, 
+             label=f"E-RECAP FLOPs (keep_ratio={keep_ratio})", markersize=8)
     plt.xlabel("Sequence Length (tokens)", fontsize=12)
     plt.ylabel("Relative FLOPs (normalized)", fontsize=12)
     plt.title("Estimated FLOPs Reduction", fontsize=14, fontweight='bold')
@@ -205,10 +205,10 @@ def plot_flops(baseline, sdtp, out_path, keep_ratio=0.7):
 
 def load_combined_json(path):
     """
-    Load combined JSON file (new format with both baseline and SDTP).
+    Load combined JSON file (new format with both baseline and E-RECAP).
     
     Returns:
-        tuple: (baseline_dict, sdtp_dict, metadata)
+        tuple: (baseline_dict, erecap_dict, metadata)
     """
     if not os.path.exists(path):
         print(f"[Warning] File not found: {path}")
@@ -222,18 +222,18 @@ def load_combined_json(path):
         return {}, {}, None
     
     baseline = {}
-    sdtp = {}
+    erecap = {}
     
     for length_str, result in data["results"].items():
         length = int(length_str)
         if isinstance(result, dict):
             if "baseline" in result:
                 baseline[length] = result["baseline"]["latency_seconds"]
-            if "sdtp" in result:
-                sdtp[length] = result["sdtp"]["latency_seconds"]
+            if "erecap" in result:
+                erecap[length] = result["erecap"]["latency_seconds"]
     
     metadata = data.get("metadata", None)
-    return baseline, sdtp, metadata
+    return baseline, erecap, metadata
 
 
 def plot_multi_config_latency(configs_data, out_path):
@@ -241,7 +241,7 @@ def plot_multi_config_latency(configs_data, out_path):
     Plot latency comparison for multiple configurations in one figure.
     
     Args:
-        configs_data: Dict of {config_name: (baseline_dict, sdtp_dict)}
+        configs_data: Dict of {config_name: (baseline_dict, erecap_dict)}
         out_path: Output file path
     """
     plt.figure(figsize=(12, 7))
@@ -255,17 +255,17 @@ def plot_multi_config_latency(configs_data, out_path):
         plt.plot(lengths, base_vals, marker='o', linewidth=2.5, 
                 label="Baseline", markersize=10, color='black', linestyle='--')
     
-    # Plot SDTP for each configuration
+    # Plot E-RECAP for each configuration
     colors = ['#1f77b4', '#ff7f0e', '#2ca02c']  # Blue, Orange, Green
     markers = ['s', '^', 'D']  # Square, Triangle, Diamond
     
-    for idx, (config_name, (baseline, sdtp)) in enumerate(configs_data.items()):
-        lengths = sorted(set(baseline.keys()) & set(sdtp.keys()))
-        sdtp_vals = [sdtp[L] for L in lengths]
+    for idx, (config_name, (baseline, erecap)) in enumerate(configs_data.items()):
+        lengths = sorted(set(baseline.keys()) & set(erecap.keys()))
+        erecap_vals = [erecap[L] for L in lengths]
         color = colors[idx % len(colors)]
         marker = markers[idx % len(markers)]
-        plt.plot(lengths, sdtp_vals, marker=marker, linewidth=2, 
-                label=f"SDTP ({config_name})", markersize=8, color=color)
+        plt.plot(lengths, erecap_vals, marker=marker, linewidth=2, 
+                label=f"E-RECAP ({config_name})", markersize=8, color=color)
     
     plt.xlabel("Sequence Length (tokens)", fontsize=12)
     plt.ylabel("Prefill Latency (seconds)", fontsize=12)
@@ -286,7 +286,7 @@ def plot_multi_config_speedup(configs_data, out_path):
     Plot speedup comparison for multiple configurations in one figure.
     
     Args:
-        configs_data: Dict of {config_name: (baseline_dict, sdtp_dict)}
+        configs_data: Dict of {config_name: (baseline_dict, erecap_dict)}
         out_path: Output file path
     """
     plt.figure(figsize=(12, 7))
@@ -294,9 +294,9 @@ def plot_multi_config_speedup(configs_data, out_path):
     colors = ['#1f77b4', '#ff7f0e', '#2ca02c']  # Blue, Orange, Green
     markers = ['s', '^', 'D']  # Square, Triangle, Diamond
     
-    for idx, (config_name, (baseline, sdtp)) in enumerate(configs_data.items()):
-        lengths = sorted(set(baseline.keys()) & set(sdtp.keys()))
-        speedups = [baseline[L] / sdtp[L] if sdtp[L] > 0 else 0 for L in lengths]
+    for idx, (config_name, (baseline, erecap)) in enumerate(configs_data.items()):
+        lengths = sorted(set(baseline.keys()) & set(erecap.keys()))
+        speedups = [baseline[L] / erecap[L] if erecap[L] > 0 else 0 for L in lengths]
         color = colors[idx % len(colors)]
         marker = markers[idx % len(markers)]
         plt.plot(lengths, speedups, marker=marker, linewidth=2, 
@@ -305,7 +305,7 @@ def plot_multi_config_speedup(configs_data, out_path):
     
     plt.axhline(y=1.0, color='r', linestyle='--', alpha=0.5, label='Baseline (1x)')
     plt.xlabel("Sequence Length (tokens)", fontsize=12)
-    plt.ylabel("Speedup (Baseline / SDTP)", fontsize=12)
+    plt.ylabel("Speedup (Baseline / E-RECAP)", fontsize=12)
     plt.title("Speedup Comparison: Multiple Configurations", fontsize=14, fontweight='bold')
     plt.grid(True, alpha=0.3)
     plt.legend(fontsize=10, loc='best')
@@ -320,7 +320,7 @@ def plot_multi_config_speedup(configs_data, out_path):
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Generate latency curves for SDTP evaluation"
+        description="Generate latency curves for E-RECAP evaluation"
     )
     parser.add_argument(
         "--baseline", 
@@ -329,16 +329,16 @@ def main():
         help="Path to baseline latency JSON file (old format or separate file)"
     )
     parser.add_argument(
-        "--sdtp", 
+        "--erecap", 
         type=str, 
         default=None,
-        help="Path to SDTP latency JSON file (old format or separate file)"
+        help="Path to E-RECAP latency JSON file (old format or separate file)"
     )
     parser.add_argument(
         "--combined",
         type=str,
         default=None,
-        help="Path to combined results JSON file (new format with both baseline and SDTP)"
+        help="Path to combined results JSON file (new format with both baseline and E-RECAP)"
     )
     parser.add_argument(
         "--out_dir", 
@@ -375,13 +375,13 @@ def main():
     
     # Load data - support both old and new formats
     baseline = {}
-    sdtp = {}
+    erecap = {}
     metadata = None
     
     if args.combined:
         # New format: load from combined file
         print(f"[Loading] Combined results: {args.combined}")
-        baseline, sdtp, metadata = load_combined_json(args.combined)
+        baseline, erecap, metadata = load_combined_json(args.combined)
         if metadata and args.keep_ratio is None:
             # Auto-detect keep_ratio from metadata
             args.keep_ratio = metadata.get("pruning_config", {}).get("keep_ratio", 0.7)
@@ -389,16 +389,16 @@ def main():
         # Old format: load separate files
         if args.baseline is None:
             args.baseline = "results/latency_baseline.json"
-        if args.sdtp is None:
-            args.sdtp = "results/latency_sdtp.json"
+        if args.erecap is None:
+            args.erecap = "results/latency_erecap.json"
         
         print(f"[Loading] Baseline: {args.baseline}")
         baseline, baseline_meta = load_json(args.baseline)
         
-        print(f"[Loading] SDTP: {args.sdtp}")
-        sdtp, sdtp_meta = load_json(args.sdtp)
+        print(f"[Loading] E-RECAP: {args.erecap}")
+        erecap, erecap_meta = load_json(args.erecap)
         
-        metadata = baseline_meta or sdtp_meta
+        metadata = baseline_meta or erecap_meta
         if metadata and args.keep_ratio is None:
             args.keep_ratio = metadata.get("pruning_config", {}).get("keep_ratio", 0.7)
     
@@ -406,23 +406,23 @@ def main():
         print("[Error] Baseline data is empty")
         return
     
-    if not sdtp:
-        print("[Error] SDTP data is empty")
+    if not erecap:
+        print("[Error] E-RECAP data is empty")
         return
     
     if args.keep_ratio is None:
         args.keep_ratio = 0.7  # Default fallback
     
-    print(f"[Info] Found {len(baseline)} baseline points, {len(sdtp)} SDTP points")
+    print(f"[Info] Found {len(baseline)} baseline points, {len(erecap)} E-RECAP points")
     if metadata:
         config_name = metadata.get("config_name", "unknown")
         print(f"[Info] Configuration: {config_name}")
     
     # Generate plots with optional prefix
     prefix = f"{args.prefix}_" if args.prefix else ""
-    plot_latency(baseline, sdtp, os.path.join(args.out_dir, f"{prefix}latency_curve.png"))
-    plot_speedup(baseline, sdtp, os.path.join(args.out_dir, f"{prefix}speedup_curve.png"))
-    plot_flops(baseline, sdtp, os.path.join(args.out_dir, f"{prefix}flops_curve.png"), 
+    plot_latency(baseline, erecap, os.path.join(args.out_dir, f"{prefix}latency_curve.png"))
+    plot_speedup(baseline, erecap, os.path.join(args.out_dir, f"{prefix}speedup_curve.png"))
+    plot_flops(baseline, erecap, os.path.join(args.out_dir, f"{prefix}flops_curve.png"), 
                keep_ratio=args.keep_ratio)
     
     print("[OK] All plots generated successfully!")
@@ -433,7 +433,7 @@ def plot_multi_config_flops(configs_data, keep_ratios, out_path):
     Plot FLOPs comparison for multiple configurations in one figure.
     
     Args:
-        configs_data: Dict of {config_name: (baseline_dict, sdtp_dict)}
+        configs_data: Dict of {config_name: (baseline_dict, erecap_dict)}
         keep_ratios: Dict of {config_name: keep_ratio}
         out_path: Output file path
     """
@@ -455,22 +455,22 @@ def plot_multi_config_flops(configs_data, keep_ratios, out_path):
     plt.plot(lengths, base_flops_norm, marker='o', linewidth=2.5, 
             label="Baseline FLOPs", markersize=10, color='black', linestyle='--')
     
-    # Plot SDTP FLOPs for each configuration
+    # Plot E-RECAP FLOPs for each configuration
     colors = ['#1f77b4', '#ff7f0e', '#2ca02c']  # Blue, Orange, Green
     markers = ['s', '^', 'D']  # Square, Triangle, Diamond
     
-    for idx, (config_name, (baseline, sdtp)) in enumerate(configs_data.items()):
+    for idx, (config_name, (baseline, erecap)) in enumerate(configs_data.items()):
         keep_ratio = keep_ratios.get(config_name, 0.7)
-        sdtp_flops = [estimate_flops(int(L * keep_ratio)) for L in lengths]
+        erecap_flops = [estimate_flops(int(L * keep_ratio)) for L in lengths]
         if base_flops[0] > 0:
-            sdtp_flops_norm = [f / base_flops[0] for f in sdtp_flops]
+            erecap_flops_norm = [f / base_flops[0] for f in erecap_flops]
         else:
-            sdtp_flops_norm = sdtp_flops
+            erecap_flops_norm = erecap_flops
         
         color = colors[idx % len(colors)]
         marker = markers[idx % len(markers)]
-        plt.plot(lengths, sdtp_flops_norm, marker=marker, linewidth=2, 
-                label=f"SDTP {config_name} (keep_ratio={keep_ratio})", 
+        plt.plot(lengths, erecap_flops_norm, marker=marker, linewidth=2, 
+                label=f"E-RECAP {config_name} (keep_ratio={keep_ratio})", 
                 markersize=8, color=color)
     
     plt.xlabel("Sequence Length (tokens)", fontsize=12)
@@ -504,10 +504,10 @@ def plot_comprehensive_singlegpu(out_dir="results/fig"):
     
     for config_name, config_file in config_files:
         if os.path.exists(config_file):
-            baseline, sdtp, metadata = load_combined_json(config_file)
-            if baseline and sdtp:
+            baseline, erecap, metadata = load_combined_json(config_file)
+            if baseline and erecap:
                 final_name = metadata.get("config_name", config_name) if metadata else config_name
-                configs_data[final_name] = (baseline, sdtp)
+                configs_data[final_name] = (baseline, erecap)
                 if metadata:
                     keep_ratios[final_name] = metadata.get("pruning_config", {}).get("keep_ratio", 0.7)
                     metadata_dict[final_name] = metadata
@@ -524,7 +524,7 @@ def plot_comprehensive_singlegpu(out_dir="results/fig"):
     
     # Create comprehensive figure with subplots
     fig, axes = plt.subplots(2, 2, figsize=(16, 12))
-    fig.suptitle("Single-GPU SDTP Performance: Comprehensive Comparison", fontsize=16, fontweight='bold', y=0.995)
+    fig.suptitle("Single-GPU E-RECAP Performance: Comprehensive Comparison", fontsize=16, fontweight='bold', y=0.995)
     
     colors = ['#1f77b4', '#ff7f0e', '#2ca02c']  # Blue, Orange, Green
     markers = ['s', '^', 'D']  # Square, Triangle, Diamond
@@ -535,12 +535,12 @@ def plot_comprehensive_singlegpu(out_dir="results/fig"):
     ax1.plot(lengths, base_vals, marker='o', linewidth=2.5, label="Baseline", 
             markersize=10, color='black', linestyle='--', zorder=1)
     
-    for idx, (config_name, (baseline_dict, sdtp_dict)) in enumerate(configs_data.items()):
-        sdtp_vals = [sdtp_dict[L] for L in lengths]
+    for idx, (config_name, (baseline_dict, erecap_dict)) in enumerate(configs_data.items()):
+        erecap_vals = [erecap_dict[L] for L in lengths]
         color = colors[idx % len(colors)]
         marker = markers[idx % len(markers)]
-        ax1.plot(lengths, sdtp_vals, marker=marker, linewidth=2, 
-                label=f"SDTP ({config_name})", markersize=8, color=color, zorder=2)
+        ax1.plot(lengths, erecap_vals, marker=marker, linewidth=2, 
+                label=f"E-RECAP ({config_name})", markersize=8, color=color, zorder=2)
     
     ax1.set_xlabel("Sequence Length (tokens)", fontsize=11)
     ax1.set_ylabel("Prefill Latency (seconds)", fontsize=11)
@@ -550,8 +550,8 @@ def plot_comprehensive_singlegpu(out_dir="results/fig"):
     
     # Subplot 2: Speedup Comparison (Line plot)
     ax2 = axes[0, 1]
-    for idx, (config_name, (baseline_dict, sdtp_dict)) in enumerate(configs_data.items()):
-        speedups = [baseline_dict[L] / sdtp_dict[L] if sdtp_dict[L] > 0 else 0 for L in lengths]
+    for idx, (config_name, (baseline_dict, erecap_dict)) in enumerate(configs_data.items()):
+        speedups = [baseline_dict[L] / erecap_dict[L] if erecap_dict[L] > 0 else 0 for L in lengths]
         color = colors[idx % len(colors)]
         marker = markers[idx % len(markers)]
         avg_speedup = np.mean(speedups)
@@ -561,7 +561,7 @@ def plot_comprehensive_singlegpu(out_dir="results/fig"):
     
     ax2.axhline(y=1.0, color='r', linestyle='--', alpha=0.5, linewidth=1.5, label='Baseline (1x)', zorder=1)
     ax2.set_xlabel("Sequence Length (tokens)", fontsize=11)
-    ax2.set_ylabel("Speedup (Baseline / SDTP)", fontsize=11)
+    ax2.set_ylabel("Speedup (Baseline / E-RECAP)", fontsize=11)
     ax2.set_title("(b) Speedup vs Sequence Length", fontsize=12, fontweight='bold')
     ax2.grid(True, alpha=0.3)
     ax2.legend(fontsize=9, loc='best')
@@ -572,8 +572,8 @@ def plot_comprehensive_singlegpu(out_dir="results/fig"):
     avg_speedups = []
     bar_colors = []
     
-    for idx, (config_name, (baseline_dict, sdtp_dict)) in enumerate(configs_data.items()):
-        speedups = [baseline_dict[L] / sdtp_dict[L] if sdtp_dict[L] > 0 else 0 for L in lengths]
+    for idx, (config_name, (baseline_dict, erecap_dict)) in enumerate(configs_data.items()):
+        speedups = [baseline_dict[L] / erecap_dict[L] if erecap_dict[L] > 0 else 0 for L in lengths]
         avg_speedup = np.mean(speedups)
         config_names.append(config_name)
         avg_speedups.append(avg_speedup)
@@ -598,14 +598,14 @@ def plot_comprehensive_singlegpu(out_dir="results/fig"):
     flops_reductions = []
     bar_colors_flops = []
     
-    for idx, (config_name, (baseline_dict, sdtp_dict)) in enumerate(configs_data.items()):
+    for idx, (config_name, (baseline_dict, erecap_dict)) in enumerate(configs_data.items()):
         keep_ratio = keep_ratios.get(config_name, 0.7)
         # Calculate average FLOPs reduction across all lengths
         reductions = []
         for L in lengths:
             base_flops = estimate_flops(L)
-            sdtp_flops = estimate_flops(int(L * keep_ratio))
-            reduction = (1 - sdtp_flops / base_flops) * 100 if base_flops > 0 else 0
+            erecap_flops = estimate_flops(int(L * keep_ratio))
+            reduction = (1 - erecap_flops / base_flops) * 100 if base_flops > 0 else 0
             reductions.append(reduction)
         avg_reduction = np.mean(reductions)
         
@@ -640,38 +640,38 @@ def plot_comprehensive_multigpu(out_dir="results/fig"):
     Plot comprehensive multi-GPU comparison with multiple subplots.
     """
     baseline_file = "results/latency_baseline_multigpu.json"
-    sdtp_file = "results/latency_sdtp_multigpu.json"
+    erecap_file = "results/latency_erecap_multigpu.json"
     
-    if not (os.path.exists(baseline_file) and os.path.exists(sdtp_file)):
+    if not (os.path.exists(baseline_file) and os.path.exists(erecap_file)):
         print("[Warning] Multi-GPU result files not found")
         return False
     
     baseline, _ = load_json(baseline_file)
-    sdtp, _ = load_json(sdtp_file)
+    erecap, _ = load_json(erecap_file)
     
-    if not baseline or not sdtp:
+    if not baseline or not erecap:
         print("[Warning] Multi-GPU data is empty")
         return False
     
-    lengths = sorted(set(baseline.keys()) & set(sdtp.keys()))
+    lengths = sorted(set(baseline.keys()) & set(erecap.keys()))
     if not lengths:
         print("[Warning] No common sequence lengths in multi-GPU data")
         return False
     
     # Create comprehensive figure with subplots
     fig, axes = plt.subplots(2, 2, figsize=(16, 12))
-    fig.suptitle("Multi-GPU SDTP Performance: Comprehensive Analysis", fontsize=16, fontweight='bold', y=0.995)
+    fig.suptitle("Multi-GPU E-RECAP Performance: Comprehensive Analysis", fontsize=16, fontweight='bold', y=0.995)
     
     base_vals = [baseline[L] for L in lengths]
-    sdtp_vals = [sdtp[L] for L in lengths]
-    speedups = [baseline[L] / sdtp[L] if sdtp[L] > 0 else 0 for L in lengths]
+    erecap_vals = [erecap[L] for L in lengths]
+    speedups = [baseline[L] / erecap[L] if erecap[L] > 0 else 0 for L in lengths]
     avg_speedup = np.mean(speedups)
     
     # Subplot 1: Latency Comparison (Line plot)
     ax1 = axes[0, 0]
     ax1.plot(lengths, base_vals, marker='o', linewidth=2.5, label="Baseline", 
             markersize=10, color='black', linestyle='--', zorder=1)
-    ax1.plot(lengths, sdtp_vals, marker='s', linewidth=2, label="SDTP", 
+    ax1.plot(lengths, erecap_vals, marker='s', linewidth=2, label="E-RECAP", 
             markersize=10, color='#2ca02c', zorder=2)
     ax1.set_xlabel("Sequence Length (tokens)", fontsize=11)
     ax1.set_ylabel("Prefill Latency (seconds)", fontsize=11)
@@ -685,7 +685,7 @@ def plot_comprehensive_multigpu(out_dir="results/fig"):
             markersize=10, color='#1f77b4', zorder=2)
     ax2.axhline(y=1.0, color='r', linestyle='--', alpha=0.5, linewidth=1.5, label='Baseline (1x)', zorder=1)
     ax2.set_xlabel("Sequence Length (tokens)", fontsize=11)
-    ax2.set_ylabel("Speedup (Baseline / SDTP)", fontsize=11)
+    ax2.set_ylabel("Speedup (Baseline / E-RECAP)", fontsize=11)
     ax2.set_title("(b) Speedup vs Sequence Length", fontsize=12, fontweight='bold')
     ax2.grid(True, alpha=0.3)
     ax2.legend(fontsize=10, loc='best')
@@ -711,7 +711,7 @@ def plot_comprehensive_multigpu(out_dir="results/fig"):
     
     # Subplot 4: Latency Reduction Percentage (Bar chart)
     ax4 = axes[1, 1]
-    latency_reductions = [(1 - sdtp[L] / baseline[L]) * 100 if baseline[L] > 0 else 0 for L in lengths]
+    latency_reductions = [(1 - erecap[L] / baseline[L]) * 100 if baseline[L] > 0 else 0 for L in lengths]
     avg_reduction = np.mean(latency_reductions)
     
     bars_reduction = ax4.bar(range(len(lengths)), latency_reductions, color='#ff7f0e', alpha=0.7,

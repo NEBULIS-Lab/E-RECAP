@@ -6,7 +6,7 @@ import torch.nn.functional as F
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
 
-class SDTPModel(nn.Module):
+class ERECAPModel(nn.Module):
     def __init__(
         self,
         model_name: Optional[str] = None,
@@ -176,7 +176,7 @@ class SDTPModel(nn.Module):
         Training/inference prefill with pruning (legacy method).
         
         NOTE: Currently not used in end2end inference (fallback mode uses
-        prefill_with_pruning from inference_sdtp instead). Kept for potential
+        prefill_with_pruning from inference_erecap instead). Kept for potential
         future use or training scenarios.
         """
         input_ids = input_ids.to(self.device)
@@ -248,10 +248,10 @@ class SDTPModel(nn.Module):
         keep_ratio: float,
     ) -> Tuple[torch.Tensor, Dict, List[Tuple[torch.Tensor, torch.Tensor]], torch.Tensor]:
         """
-        Inference-only SDTP prefill with KV cache management.
+        Inference-only E-RECAP prefill with KV cache management.
         
         NOTE: Currently not used in end2end inference (fallback mode uses
-        prefill_with_pruning from inference_sdtp instead). This function contains
+        prefill_with_pruning from inference_erecap instead). This function contains
         complex KV cache manipulation logic that was causing GQA compatibility issues.
         
         Kept for reference or potential future use if decode-phase pruning is needed.
@@ -378,7 +378,7 @@ class SDTPModel(nn.Module):
                 scores = self._extract_keep_scores(scores)  # [batch, seq_len]
 
                 # For now we support batch_size == 1 simplification
-                assert scores.size(0) == 1, "Current SDTP inference assumes batch_size = 1"
+                assert scores.size(0) == 1, "Current E-RECAP inference assumes batch_size = 1"
                 scores_1d = scores[0]  # [seq_len]
 
                 # Reuse apply_pruning logic to get indices and pruned hidden_states & attention
@@ -445,7 +445,7 @@ class SDTPModel(nn.Module):
                         else:
                             raise ValueError(
                                 f"Layer {idx}: KV cache length {kv_seq_len} < current sequence length {current_seq_len}. "
-                                f"This should not happen in normal SDTP flow."
+                                f"This should not happen in normal E-RECAP flow."
                             )
 
             # Store (possibly pruned or adjusted) KV cache for this layer

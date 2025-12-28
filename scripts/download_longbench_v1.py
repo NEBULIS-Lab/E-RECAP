@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Download and prepare LongBench v1 datasets for SDTP project.
+Download and prepare LongBench v1 datasets for E-RECAP project.
 Converts datasets to unified JSON format with 'input' and 'answers' fields.
 """
 
@@ -14,7 +14,7 @@ from typing import List, Dict, Any
 
 def convert_dataset_item(item: Dict[str, Any]) -> Dict[str, Any]:
     """
-    Convert LongBench dataset item to SDTP format.
+    Convert LongBench dataset item to E-RECAP format.
     
     Expected output:
     {
@@ -48,7 +48,7 @@ def download_and_save_dataset(
     split: str = "test"
 ) -> bool:
     """
-    Download LongBench v1 dataset and save in SDTP format.
+    Download LongBench v1 dataset and save in E-RECAP format.
     
     Args:
         dataset_name: Name of the dataset (e.g., "narrativeqa")
@@ -90,7 +90,7 @@ def download_and_save_dataset(
             else:
                 raise Exception(f"Could not load dataset with any split")
         
-        # Convert to SDTP format
+        # Convert to E-RECAP format
         print(f"  Converting {len(dataset)} items...")
         converted_data = []
         
@@ -162,7 +162,7 @@ def main():
     output_dir.mkdir(parents=True, exist_ok=True)
     
     print("=" * 60)
-    print("LongBench v1 Dataset Downloader for SDTP")
+    print("LongBench v1 Dataset Downloader for E-RECAP")
     print("=" * 60)
     print(f"Output directory: {output_dir}")
     print()

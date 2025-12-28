@@ -8,23 +8,23 @@ import argparse
 import os
 
 
-def parse_log_file(log_path, baseline_out, sdtp_out):
+def parse_log_file(log_path, baseline_out, erecap_out):
     """
     Parse log file with format:
-    [Length 4096] baseline=0.7065s  sdtp=0.2527s  speedup=2.80x
+    [Length 4096] baseline=0.7065s  erecap=0.2527s  speedup=2.80x
     
     Args:
         log_path: Path to log file
         baseline_out: Output path for baseline JSON
-        sdtp_out: Output path for SDTP JSON
+        erecap_out: Output path for E-RECAP JSON
     """
-    # Pattern to match: [Length 4096] baseline=0.7065s  sdtp=0.2527s  speedup=2.80x
+    # Pattern to match: [Length 4096] baseline=0.7065s  erecap=0.2527s  speedup=2.80x
     pattern = re.compile(
-        r"\[Length\s+(\d+)\].*baseline=([\d.]+)s.*sdtp=([\d.]+)s"
+        r"\[Length\s+(\d+)\].*baseline=([\d.]+)s.*erecap=([\d.]+)s"
     )
     
     baseline = {}
-    sdtp = {}
+    erecap = {}
     
     if not os.path.exists(log_path):
         print(f"[Error] Log file not found: {log_path}")
@@ -38,17 +38,17 @@ def parse_log_file(log_path, baseline_out, sdtp_out):
             if match:
                 length = int(match.group(1))
                 baseline_latency = float(match.group(2))
-                sdtp_latency = float(match.group(3))
+                erecap_latency = float(match.group(3))
                 
                 baseline[length] = baseline_latency
-                sdtp[length] = sdtp_latency
+                erecap[length] = erecap_latency
                 
                 print(f"  Found: Length={length}, baseline={baseline_latency:.4f}s, "
-                      f"sdtp={sdtp_latency:.4f}s")
+                      f"erecap={erecap_latency:.4f}s")
     
     if not baseline:
         print("[Warning] No matching patterns found in log file")
-        print("[Info] Expected format: [Length 4096] baseline=0.7065s  sdtp=0.2527s  speedup=2.80x")
+        print("[Info] Expected format: [Length 4096] baseline=0.7065s  erecap=0.2527s  speedup=2.80x")
         return
     
     # Save as JSON with string keys (will be converted to int when loading)
@@ -56,13 +56,13 @@ def parse_log_file(log_path, baseline_out, sdtp_out):
     with open(baseline_out, 'w') as f:
         json.dump(baseline, f, indent=2)
     
-    os.makedirs(os.path.dirname(sdtp_out), exist_ok=True)
-    with open(sdtp_out, 'w') as f:
-        json.dump(sdtp, f, indent=2)
+    os.makedirs(os.path.dirname(erecap_out), exist_ok=True)
+    with open(erecap_out, 'w') as f:
+        json.dump(erecap, f, indent=2)
     
     print(f"[OK] Parsed {len(baseline)} data points")
     print(f"[OK] Baseline data saved to: {baseline_out}")
-    print(f"[OK] SDTP data saved to: {sdtp_out}")
+    print(f"[OK] E-RECAP data saved to: {erecap_out}")
 
 
 def main():
@@ -82,15 +82,15 @@ def main():
         help="Output path for baseline JSON"
     )
     parser.add_argument(
-        "--sdtp",
+        "--erecap",
         type=str,
-        default="results/latency_sdtp.json",
-        help="Output path for SDTP JSON"
+        default="results/latency_erecap.json",
+        help="Output path for E-RECAP JSON"
     )
     
     args = parser.parse_args()
     
-    parse_log_file(args.log, args.baseline, args.sdtp)
+    parse_log_file(args.log, args.baseline, args.erecap)
 
 
 if __name__ == "__main__":

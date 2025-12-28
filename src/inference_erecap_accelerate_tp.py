@@ -1,21 +1,15 @@
-# src/inference_sdtp_deepspeed.py
-# 真正把 Qwen2-7B + SDTP 跑到 64K/128K 级别上下文
-# 64K tokens ≈ 5 万字中文 / 6〜7 万字英文
-# 128K tokens ≈ 10 万字中文 / 13〜14 万字英文
-
+# src/inference_erecap_accelerate_tp.py 
+# 一个不依赖 DeepSpeed 的 TP 版本，用 accelerate 做多卡并行。
 """
-SDTP + DeepSpeed ZeRO-3 + Tensor Parallel skeleton.
+E-RECAP + HuggingFace Accelerate Tensor-Parallel skeleton.
 
-This file assumes:
-  - It is launched with `deepspeed` CLI;
-  - A deepspeed config JSON is provided via --deepspeed_config;
-  - Qwen2-7B weights are the same as in other scripts.
-The SDTP pruning logic follows the single-GPU implementation,
-but the model is wrapped inside a DeepSpeed engine.
+This script:
+  - builds a Qwen2-7B model with Accelerate device_map="auto";
+  - keeps E-RECAP pruning logic (similar to single-GPU version);
+  - is designed for profiling only, no training.
 """
 
 import argparse
-import json
 import os
 import time
 from typing import Tuple, List
@@ -23,11 +17,7 @@ from typing import Tuple, List
 import torch
 import torch.nn as nn
 from transformers import AutoModelForCausalLM, AutoTokenizer
-
-import deepspeed  # requires deepspeed installed
-
-
-DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+from accelerate import init_empty_weights, load_checkpoint_and_dispatch
 
 MODEL_PATH = "checkpoints/qwen2-7b-instruct"
 PRUNING_CKPT = "checkpoints/pruning_module.pt"
@@ -58,37 +48,56 @@ class TokenPruningModule(nn.Module):
 
 
 # ------------------------
-# DeepSpeed init helpers
+# Accelerate TP helpers
 # ------------------------
-def load_pruning_modules(hidden_size: int) -> nn.ModuleDict:
-    modules = nn.ModuleDict(
+def load_accelerate_model_and_pruners():
+    """
+    Build Qwen2-7B under Accelerate with device_map="auto".
+
+    Note:
+      - This assumes a HF-style checkpoint layout is available.
+      - For your current project, using from_pretrained with device_map="auto"
+        might be enough; here we show the more explicit pattern.
+    """
+    # Empty-init prevents allocating full weights on CPU first
+    with init_empty_weights():
+        model = AutoModelForCausalLM.from_pretrained(
+            MODEL_PATH,
+            torch_dtype=torch.float16,
+            device_map=None,
+            local_files_only=True,
+        )
+
+    # Dispatch across all visible GPUs
+    device_map = "auto"
+    model = load_checkpoint_and_dispatch(
+        model,
+        MODEL_PATH,
+        device_map=device_map,
+        dtype=torch.float16,
+    )
+
+    tokenizer = AutoTokenizer.from_pretrained(
+        MODEL_PATH,
+        local_files_only=True,
+    )
+
+    hidden_size = model.config.hidden_size
+    pruning_modules = nn.ModuleDict(
         {str(i): TokenPruningModule(hidden_size) for i in PRUNE_LAYERS}
     )
     state_dict = torch.load(PRUNING_CKPT, map_location="cpu")
-    modules.load_state_dict(state_dict)
-    modules.to(DEVICE)
-    modules.half()
-    modules.eval()
-    for p in modules.parameters():
+    pruning_modules.load_state_dict(state_dict)
+
+    # For simplicity we keep pruners on cuda:0
+    device0 = torch.device("cuda:0")
+    pruning_modules.to(device0)
+    pruning_modules.half()
+    pruning_modules.eval()
+    for p in pruning_modules.parameters():
         p.requires_grad = False
-    return modules
 
-
-def init_deepspeed_engine(args, model: nn.Module):
-    """
-    Initialize DeepSpeed ZeRO-3 + (optional) TP on the given model.
-    The exact behaviour is controlled by the JSON config.
-    """
-    with open(args.deepspeed_config, "r") as f:
-        ds_config = json.load(f)
-
-    # No optimizer / scheduler needed for inference-only engine
-    engine, _, _, _ = deepspeed.initialize(
-        model=model,
-        model_parameters=model.parameters(),
-        config=ds_config,
-    )
-    return engine
+    return model, tokenizer, pruning_modules, device0
 
 
 # ------------------------
@@ -100,8 +109,8 @@ def apply_token_pruning(
     keep_ratio: float,
 ) -> Tuple[torch.Tensor, torch.Tensor]:
     seq_len = hidden_states.size(1)
+    scores = pruning_module(hidden_states.to(pruning_module.scorer[0].weight.device))
 
-    scores = pruning_module(hidden_states)  # [seq_len]
     base_keep = set(range(min(MIN_HEAD_TOKENS, seq_len)))
     for i in range(max(0, seq_len - MIN_TAIL_TOKENS), seq_len):
         base_keep.add(i)
@@ -130,28 +139,33 @@ def apply_token_pruning(
 
 
 # ------------------------
-# Prefill with SDTP on DeepSpeed engine
+# Prefill with Accelerate TP + E-RECAP
 # ------------------------
-def prefill_with_sdtp_deepspeed(
-    engine,
+def prefill_with_erecap_accel(
+    model: AutoModelForCausalLM,
     input_ids: torch.Tensor,
     pruning_modules: nn.ModuleDict,
     keep_ratio: float,
 ) -> torch.Tensor:
     """
-    engine.module is the underlying Qwen2-7B model (possibly TP-sharded).
-    We keep the same SDTP logic, but all forward passes go through engine.module.
+    input_ids is placed on cuda:0, but model is sharded across devices.
+    Accelerate will route tensors as needed internally.
     """
-    model = engine.module
+    # embed on the first device
+    first_device = next(model.parameters()).device
+    input_ids = input_ids.to(first_device)
 
     hidden_states = model.model.embed_tokens(input_ids)
 
     for layer_idx, layer in enumerate(model.model.layers):
+        device_layer = next(layer.parameters()).device
+        hidden_states = hidden_states.to(device_layer)
+
         position_ids = torch.arange(
             0,
             hidden_states.size(1),
             dtype=torch.long,
-            device=hidden_states.device,
+            device=device_layer,
         ).unsqueeze(0)
 
         outputs = layer(
@@ -170,13 +184,19 @@ def prefill_with_sdtp_deepspeed(
                 keep_ratio,
             )
 
+    last_device = next(model.lm_head.parameters()).device
+    hidden_states = hidden_states.to(last_device)
     hidden_states = model.model.norm(hidden_states)
     logits = model.lm_head(hidden_states)
     return logits
 
 
-def baseline_prefill_deepspeed(engine, input_ids: torch.Tensor) -> torch.Tensor:
-    model = engine.module
+def baseline_prefill_accel(
+    model: AutoModelForCausalLM,
+    input_ids: torch.Tensor,
+) -> torch.Tensor:
+    first_device = next(model.parameters()).device
+    input_ids = input_ids.to(first_device)
     with torch.no_grad():
         outputs = model(
             input_ids=input_ids,
@@ -206,7 +226,7 @@ def measure_latency(fn, *args, warmup: int = 1, runs: int = 3) -> float:
 
 
 def build_dummy_input(tokenizer: AutoTokenizer, length: int, device: torch.device):
-    base_ids = tokenizer("Hello from SDTP + DeepSpeed.", return_tensors="pt")[
+        base_ids = tokenizer("Hello from E-RECAP + Accelerate TP.", return_tensors="pt")[
         "input_ids"
     ][0]
     if base_ids.size(0) >= length:
@@ -223,57 +243,30 @@ def build_dummy_input(tokenizer: AutoTokenizer, length: int, device: torch.devic
 # Profiling
 # ------------------------
 def profile_lengths(args):
-    # Local rank is managed by DeepSpeed launcher
-    local_rank = int(os.environ.get("LOCAL_RANK", "0"))
-    torch.cuda.set_device(local_rank)
+    model, tokenizer, pruners, device0 = load_accelerate_model_and_pruners()
+    model.eval()
 
-    model = AutoModelForCausalLM.from_pretrained(
-        MODEL_PATH,
-        torch_dtype=torch.float16,
-        device_map=None,  # DeepSpeed handles device placement
-        local_files_only=True,
-    )
-
-    engine = init_deepspeed_engine(args, model)
-    tokenizer = AutoTokenizer.from_pretrained(
-        MODEL_PATH,
-        local_files_only=True,
-    )
-
-    hidden_size = engine.module.config.hidden_size
-    pruning_modules = load_pruning_modules(hidden_size)
-
-    if engine.global_rank == 0:
-        print("[DS-SDTP] Profiling lengths:", args.lengths)
+    if int(os.environ.get("RANK", "0")) == 0:
+        print("[Accel-E-RECAP] Profiling lengths:", args.lengths)
 
     for L in args.lengths:
-        input_ids = build_dummy_input(tokenizer, L, device=engine.local_rank)
-
+        input_ids = build_dummy_input(tokenizer, L, device0)
         try:
             baseline_t = measure_latency(
-                lambda x: baseline_prefill_deepspeed(engine, x),
+                lambda x: baseline_prefill_accel(model, x),
                 input_ids,
             )
-            sdtp_t = measure_latency(
-                lambda x: prefill_with_sdtp_deepspeed(
-                    engine,
-                    x,
-                    pruning_modules,
-                    args.keep_ratio,
-                ),
+            erecap_t = measure_latency(
+                lambda x: prefill_with_erecap_accel(model, x, pruners, args.keep_ratio),
                 input_ids,
             )
-
-            if engine.global_rank == 0:
-                speedup = baseline_t / sdtp_t if sdtp_t > 0 else float("inf")
-                print(
-                    f"[Length {L}] DS-baseline={baseline_t:.4f}s  "
-                    f"DS-SDTP={sdtp_t:.4f}s  speedup={speedup:.2f}x"
-                )
-
+            speedup = baseline_t / erecap_t if erecap_t > 0 else float("inf")
+            print(
+                f"[Length {L}] Accel-baseline={baseline_t:.4f}s  "
+                f"Accel-E-RECAP={erecap_t:.4f}s  speedup={speedup:.2f}x"
+            )
         except torch.cuda.OutOfMemoryError:
-            if engine.global_rank == 0:
-                print(f"[Length {L}] OOM under DeepSpeed, skipped.")
+            print(f"[Length {L}] OOM under Accelerate TP, skipped.")
         finally:
             del input_ids
             torch.cuda.empty_cache()
@@ -285,17 +278,10 @@ def profile_lengths(args):
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--deepspeed_config",
-        type=str,
-        required=True,
-        help="Path to DeepSpeed ZeRO-3 + TP config JSON.",
-    )
-    parser.add_argument(
         "--mode",
         type=str,
         default="profile",
         choices=["profile"],
-        help="Only 'profile' is defined for now.",
     )
     parser.add_argument(
         "--lengths",
@@ -308,7 +294,6 @@ def parse_args():
         type=float,
         default=KEEP_RATIO,
     )
-    parser = deepspeed.add_config_arguments(parser)
     return parser.parse_args()
 
 
@@ -317,8 +302,7 @@ def main():
     if args.mode == "profile":
         profile_lengths(args)
     else:
-        if int(os.environ.get("RANK", "0")) == 0:
-            print(f"Mode {args.mode} not implemented yet.")
+        print(f"Mode {args.mode} is not implemented yet.")
 
 
 if __name__ == "__main__":

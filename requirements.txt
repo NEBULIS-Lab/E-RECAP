@@ -11,5 +11,5 @@ matplotlib>=3.5.0
 numpy>=1.21.0
 
 # advanced inference modes
-# accelerate>=0.20.0  # For inference_sdtp_accelerate_tp.py
-# deepspeed>=0.13.0    # For inference_sdtp_deepspeed.py
+# accelerate>=0.20.0  # For inference_erecap_accelerate_tp.py
+# deepspeed>=0.13.0    # For inference_erecap_deepspeed.py

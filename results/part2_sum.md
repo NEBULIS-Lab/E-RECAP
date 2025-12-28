@@ -1,12 +1,12 @@
 第一步完成总结
 1. 目录结构
 已创建目录：
-SDTP/  data/    LongBench_data/      ├── narrativeqa.json      (200 items)      ├── qasper.json           (200 items)      ├── gov_report.json       (200 items)      ├── multi_news.json       (200 items)      ├── multifieldqa_en.json  (150 items)      ├── hotpotqa.json         (200 items)      ├── musique.json          (200 items)      ├── triviaqa.json         (200 items)      └── README.md
+E-RECAP/  data/    LongBench_data/      ├── narrativeqa.json      (200 items)      ├── qasper.json           (200 items)      ├── gov_report.json       (200 items)      ├── multi_news.json       (200 items)      ├── multifieldqa_en.json  (150 items)      ├── hotpotqa.json         (200 items)      ├── musique.json          (200 items)      ├── triviaqa.json         (200 items)      └── README.md
 2. 数据集状态
 已成功下载并转换 8 个数据集：
 所有文件格式正确
-符合 SDTP 格式要求
-已验证与 SDTP 加载器兼容
+符合 E-RECAP 评估格式要求
+已验证与 E-RECAP 加载器兼容
 注意：legal_contract_qa 不在 LongBench v1 中。可用的数据集包括：narrativeqa, qasper, multifieldqa_en, multifieldqa_zh, hotpotqa, 2wikimqa, musique, dureader, gov_report, qmsum, multi_news, vcsum, trec, triviaqa, samsum, lsht, passage_count, passage_retrieval_en, passage_retrieval_zh, lcc, repobench-p
 3. JSON 格式验证
 所有文件格式：
@@ -19,7 +19,7 @@ SDTP/  data/    LongBench_data/      ├── narrativeqa.json      (200 items)
 测试 LongBench 评估框架：
 # 使用 narrativeqa 数据集bash scripts/run_longbench_setup.sh data/LongBench_data/narrativeqa.json# 使用其他数据集bash scripts/run_longbench_setup.sh data/LongBench_data/hotpotqa.jsonbash scripts/run_longbench_setup.sh data/LongBench_data/qasper.json
 测试 LM-Eval Harness 框架：
-# Baseline 模型bash scripts/run_lmeval_setup.sh data/LongBench_data/narrativeqa.json baseline# SDTP 模型bash scripts/run_lmeval_setup.sh data/LongBench_data/narrativeqa.json sdtp# 使用其他数据集bash scripts/run_lmeval_setup.sh data/LongBench_data/hotpotqa.json baseline
+# Baseline 模型bash scripts/run_lmeval_setup.sh data/LongBench_data/narrativeqa.json baseline# E-RECAP 模型bash scripts/run_lmeval_setup.sh data/LongBench_data/narrativeqa.json erecap# 使用其他数据集bash scripts/run_lmeval_setup.sh data/LongBench_data/hotpotqa.json baseline
 验证数据集格式：
 # 验证所有下载的文件python3 scripts/validate_longbench_data.py
 5. 相关脚本
@@ -32,14 +32,14 @@ scripts/validate_longbench_data.py - 验证 JSON 格式
 路径更新：脚本默认使用 data/LongBench/narrativeqa.json，但数据集在 data/LongBench_data/。运行测试时请使用完整路径，例如：
    bash scripts/run_longbench_setup.sh data/LongBench_data/narrativeqa.json
 数据集数量：每个数据集包含 150-200 个测试样本（这是 LongBench v1 测试集的默认大小）
-格式兼容性：已测试并与 SDTP 的 LongBenchDataset 类兼容
+格式兼容性：已测试并与 E-RECAP 的 LongBenchDataset 类兼容
 7. 最终目录树
-SDTP/  data/    LongBench_data/      ├── narrativeqa.json      ├── qasper.json      ├── gov_report.json      ├── multi_news.json      ├── multifieldqa_en.json      ├── hotpotqa.json      ├── musique.json      ├── triviaqa.json      └── README.md
-所有数据集已准备就绪，可用于 SDTP 评估管道
+E-RECAP/  data/    LongBench_data/      ├── narrativeqa.json      ├── qasper.json      ├── gov_report.json      ├── multi_news.json      ├── multifieldqa_en.json      ├── hotpotqa.json      ├── musique.json      ├── triviaqa.json      └── README.md
+所有数据集已准备就绪，可用于 E-RECAP 评估管道
 
 
 ### LongBench 的 “multi-document reasoning” 任务 HotpotQA 上面跑 baseline，也就是qwen 2-7b本身，hit rate = 0.20
-user2@bld-Rack-Server:/data/private/user2/workspace/SDTP$ CUDA_VISIBLE_DEVICES=0 python3 -m src.evaluation.longbench.run_longbench \\
+user2@bld-Rack-Server:/data/private/user2/workspace/E-RECAP$ CUDA_VISIBLE_DEVICES=0 python3 -m src.evaluation.longbench.run_longbench \\
   --task data/LongBench_data/hotpotqa.json \
   --model checkpoints/qwen2-7b-instruct \
   --mode baseline \
@@ -70,7 +70,7 @@ Starting from v4.46, the `logits` model output will have the same type as the mo
 [Eval] Hit Rate: 0.2000
 [Eval] Predictions saved to results/hotpotqa_pred_20.json
 [OK] Summary saved to results/hotpotqa_summary_20.json
-user2@bld-Rack-Server:/data/private/user2/workspace/SDTP$ cat results/hotpotqa_pred_20.json
+user2@bld-Rack-Server:/data/private/user2/workspace/E-RECAP$ cat results/hotpotqa_pred_20.json
 [
   {
     "id": 0,
@@ -252,28 +252,28 @@ user2@bld-Rack-Server:/data/private/user2/workspace/SDTP$ cat results/hotpotqa_p
     ],
     "hit": 0.0
   }
-]user2@bld-Rack-Server:/data/private/user2/workspace/SDTP$ catresults/hotpotqa_summary_20.jsonn
+]user2@bld-Rack-Server:/data/private/user2/workspace/E-RECAP$ cat results/hotpotqa_summary_20.json
 {
   "task": "data/LongBench_data/hotpotqa.json",
   "num_eval": 20,
   "hit_rate": 0.2,
   "model": "checkpoints/qwen2-7b-instruct",
   "status": "inference_completed"
-user2@bld-Rack-Server:/data/private/user2/workspace/SDTP$ 
+user2@bld-Rack-Server:/data/private/user2/workspace/E-RECAP$ 
 
 
 
 
-user2@bld-Rack-Server:/data/private/user2/workspace/SDTP$ python3 -m src.evaluation.longbench.run_longbench \
+user2@bld-Rack-Server:/data/private/user2/workspace/E-RECAP$ python3 -m src.evaluation.longbench.run_longbench \
   --task data/LongBench_data/hotpotqa.json \
   --model checkpoints/qwen2-7b-instruct \
   --pruning_module checkpoints/pruning_module.pt \
-  --mode sdtp \
+  --mode erecap \
   --do_inference \
   --max_samples 1 \
   --keep_ratio 0.9 \
   --max_new_tokens 16 \
-  --output results/test_sdtp.json
+  --output results/test_erecap.json
 /home/user2/.local/lib/python3.10/site-packages/torch/cuda/__init__.py:63: FutureWarning: The pynvml package is deprecated. Please install nvidia-ml-py instead. If you did not install pynvml directly, please report this to the maintainers of the package that installed pynvml for you.
   import pynvml  # type: ignore[import]
 [LongBench] Starting evaluation...
@@ -281,7 +281,7 @@ user2@bld-Rack-Server:/data/private/user2/workspace/SDTP$ python3 -m src.evaluat
   Model: checkpoints/qwen2-7b-instruct
 [Init] Preparing model loading: checkpoints/qwen2-7b-instruct
 [Init] Pruning module: checkpoints/pruning_module.pt
-[Init] Mode: sdtp
+[Init] Mode: erecap
 [Init] Keep ratio: 0.9
 [Init] >>> Real model loading START <<<
 Loading checkpoint shards: 100%|██████████████████| 4/4 [00:01<00:00,  3.64it/s]
@@ -300,13 +300,13 @@ The attention layers in this model are transitioning from computing the RoPE emb
 Starting from v4.46, the `logits` model output will have the same type as the model (except at train time, where it will always be FP32)
 [Eval] DONE
 [Eval] Hit Rate: 1.0000
-[OK] Summary saved to results/test_sdtp.json
-user2@bld-Rack-Server:/data/private/user2/workspace/SDTP$ 
+[OK] Summary saved to results/test_erecap.json
+user2@bld-Rack-Server:/data/private/user2/workspace/E-RECAP$ 
 
 
 
 
-user2@bld-Rack-Server:/data/private/user2/workspace/SDTP$ python3 -m src.evaluation.longbench.run_longbench \
+user2@bld-Rack-Server:/data/private/user2/workspace/E-RECAP$ python3 -m src.evaluation.longbench.run_longbench \
   --task data/LongBench_data/hotpotqa.json \
   --model checkpoints/qwen2-7b-instruct \
   --do_inference \
@@ -336,28 +336,26 @@ Starting from v4.46, the `logits` model output will have the same type as the mo
 [Eval] Hit Rate: 0.3450
 [OK] Summary saved to results/hotpotqa_baseline.json
 
-到这里，我们注意到SDTP prefill 剪枝完全有效，但 生成阶段 decode 没有剪枝，所以 LongBench 的端到端指标不会随着 keep_ratio 变化而变化
+到这里，我们注意到 E-RECAP prefill 剪枝完全有效，但生成阶段 decode 没有剪枝，所以 LongBench 的端到端指标不会随着 keep_ratio 变化而变化
 0.9 → HitRate = 0.3450
 0.8 → HitRate = 0.3450
 0.7 → HitRate = 0.3450
-论文中生成阶段加速来自KV cache 底层操作减少（因为被剪掉的 token 不再占用）注意力计算序列长度减少
-论文没有做 decode 阶段动态 pruning，这是我们之后的阶段可以提升的
+E-RECAP 在生成阶段的加速来自 KV cache 底层操作减少（因为被剪掉的 token 不再占用）注意力计算序列长度减少
+当前实现没有做 decode 阶段动态 pruning，这是后续可以提升的方向
 
-当前进展和分析被总结到了PAPER_IMPLEMENTATION_ANALYSIS.md
-PRUNING_VERIFICATION_ANALYSIS.md
-IMPLEMENTATION_VS_PAPER_COMPARISON.md。我将对缺失的实验做补充。
+当前进展和分析已总结到相关文档中。后续将对缺失的实验做补充。
 
 
 
 
 最新结果
-user2@bld-Rack-Server:/data/private/user2/workspace/SDTP$  bash scripts/run_inference.sh profile end2end
+user2@bld-Rack-Server:/data/private/user2/workspace/E-RECAP$  bash scripts/run_inference.sh profile end2end
 ==========================================
 [Inference] Running all configurations
 Benchmark Mode: end2end
 ==========================================
 
-[Config: keep09] Profiling baseline vs SDTP (keep_ratio=0.9)
+[Config: keep09] Profiling baseline vs E-RECAP (keep_ratio=0.9)
 ----------------------------------------
 /home/user2/.local/lib/python3.10/site-packages/torch/cuda/__init__.py:63: FutureWarning: The pynvml package is deprecated. Please install nvidia-ml-py instead. If you did not install pynvml directly, please report this to the maintainers of the package that installed pynvml for you.
   import pynvml  # type: ignore[import]
@@ -385,9 +383,9 @@ The attention layers in this model are transitioning from computing the RoPE emb
 [PRUNE] Layer 25: seq_len=487, keep_k=438, kept=438, pruned=49, ratio=10.06%
 [Length 1024] End2End Results:
   Baseline: prefill=0.1309s, decode=2.1518s, total=2.2827s
-  SDTP:     prefill=0.1393s, decode=2.5570s, total=2.6964s
+  E-RECAP:  prefill=0.1393s, decode=2.5570s, total=2.6964s
   Speedup:  prefill=0.94x, decode=0.84x, total=0.85x
-  KV Cache: baseline=1024, sdtp=438, reduction=57.23%
+  KV Cache: baseline=1024, erecap=438, reduction=57.23%
 [PRUNE] Layer 4: seq_len=2048, keep_k=1843, kept=1843, pruned=205, ratio=10.01%
 [PRUNE] Layer 7: seq_len=1843, keep_k=1658, kept=1658, pruned=185, ratio=10.04%
 [PRUNE] Layer 10: seq_len=1658, keep_k=1492, kept=1492, pruned=166, ratio=10.01%
@@ -398,9 +396,9 @@ The attention layers in this model are transitioning from computing the RoPE emb
 [PRUNE] Layer 25: seq_len=977, keep_k=879, kept=879, pruned=98, ratio=10.03%
 [Length 2048] End2End Results:
   Baseline: prefill=0.2760s, decode=2.6000s, total=2.8760s
-  SDTP:     prefill=0.2166s, decode=1.8247s, total=2.0413s
+  E-RECAP:  prefill=0.2166s, decode=1.8247s, total=2.0413s
   Speedup:  prefill=1.27x, decode=1.42x, total=1.41x
-  KV Cache: baseline=2048, sdtp=879, reduction=57.08%
+  KV Cache: baseline=2048, erecap=879, reduction=57.08%
 [PRUNE] Layer 4: seq_len=4096, keep_k=3686, kept=3686, pruned=410, ratio=10.01%
 [PRUNE] Layer 7: seq_len=3686, keep_k=3317, kept=3317, pruned=369, ratio=10.01%
 [PRUNE] Layer 10: seq_len=3317, keep_k=2985, kept=2985, pruned=332, ratio=10.01%
@@ -411,9 +409,9 @@ The attention layers in this model are transitioning from computing the RoPE emb
 [PRUNE] Layer 25: seq_len=1957, keep_k=1761, kept=1761, pruned=196, ratio=10.02%
 [Length 4096] End2End Results:
   Baseline: prefill=0.6596s, decode=0.2411s, total=0.9007s
-  SDTP:     prefill=0.4747s, decode=2.8474s, total=3.3221s
+  E-RECAP:  prefill=0.4747s, decode=2.8474s, total=3.3221s
   Speedup:  prefill=1.39x, decode=0.08x, total=0.27x
-  KV Cache: baseline=4096, sdtp=1761, reduction=57.01%
+  KV Cache: baseline=4096, erecap=1761, reduction=57.01%
 [PRUNE] Layer 4: seq_len=8192, keep_k=7372, kept=7372, pruned=820, ratio=10.01%
 [PRUNE] Layer 7: seq_len=7372, keep_k=6634, kept=6634, pruned=738, ratio=10.01%
 [PRUNE] Layer 10: seq_len=6634, keep_k=5970, kept=5970, pruned=664, ratio=10.01%
@@ -424,9 +422,9 @@ The attention layers in this model are transitioning from computing the RoPE emb
 [PRUNE] Layer 25: seq_len=3915, keep_k=3523, kept=3523, pruned=392, ratio=10.01%
 [Length 8192] End2End Results:
   Baseline: prefill=1.2648s, decode=3.2982s, total=4.5630s
-  SDTP:     prefill=0.9561s, decode=3.3350s, total=4.2912s
+  E-RECAP:  prefill=0.9561s, decode=3.3350s, total=4.2912s
   Speedup:  prefill=1.32x, decode=0.99x, total=1.06x
-  KV Cache: baseline=8192, sdtp=3523, reduction=56.99%
+  KV Cache: baseline=8192, erecap=3523, reduction=56.99%
 [PRUNE] Layer 4: seq_len=16384, keep_k=14745, kept=14745, pruned=1639, ratio=10.00%
 [PRUNE] Layer 7: seq_len=14745, keep_k=13270, kept=13270, pruned=1475, ratio=10.00%
 [PRUNE] Layer 10: seq_len=13270, keep_k=11943, kept=11943, pruned=1327, ratio=10.00%
@@ -437,9 +435,9 @@ The attention layers in this model are transitioning from computing the RoPE emb
 [PRUNE] Layer 25: seq_len=7834, keep_k=7050, kept=7050, pruned=784, ratio=10.01%
 [Length 16384] End2End Results:
   Baseline: prefill=3.2827s, decode=4.5325s, total=7.8152s
-  SDTP:     prefill=2.2015s, decode=4.4529s, total=6.6544s
+  E-RECAP:  prefill=2.2015s, decode=4.4529s, total=6.6544s
   Speedup:  prefill=1.49x, decode=1.02x, total=1.17x
-  KV Cache: baseline=16384, sdtp=7050, reduction=56.97%
+  KV Cache: baseline=16384, erecap=7050, reduction=56.97%
 This is a friendly reminder - the current text generation call will exceed the model's predefined maximum length (32768). Depending on the model, you may observe exceptions, performance degradation, or nothing at all.
 [PRUNE] Layer 4: seq_len=32768, keep_k=29491, kept=29491, pruned=3277, ratio=10.00%
 [PRUNE] Layer 7: seq_len=29491, keep_k=26541, kept=26541, pruned=2950, ratio=10.00%
@@ -451,14 +449,14 @@ This is a friendly reminder - the current text generation call will exceed the m
 [PRUNE] Layer 25: seq_len=15670, keep_k=14103, kept=14103, pruned=1567, ratio=10.00%
 [Length 32768] End2End Results:
   Baseline: prefill=7.7054s, decode=6.5097s, total=14.2151s
-  SDTP:     prefill=5.0132s, decode=7.1996s, total=12.2128s
+  E-RECAP:  prefill=5.0132s, decode=7.1996s, total=12.2128s
   Speedup:  prefill=1.54x, decode=0.90x, total=1.16x
-  KV Cache: baseline=32768, sdtp=14103, reduction=56.96%
+  KV Cache: baseline=32768, erecap=14103, reduction=56.96%
 [OK] Results saved to results/latency_results_keep09.json
 [OK] Baseline results saved to results/latency_baseline_keep09.json
-[OK] SDTP results saved to results/latency_sdtp_keep09.json
+[OK] E-RECAP results saved to results/latency_erecap_keep09.json
 
-[Config: keep08] Profiling baseline vs SDTP (keep_ratio=0.8)
+[Config: keep08] Profiling baseline vs E-RECAP (keep_ratio=0.8)
 ----------------------------------------
 /home/user2/.local/lib/python3.10/site-packages/torch/cuda/__init__.py:63: FutureWarning: The pynvml package is deprecated. Please install nvidia-ml-py instead. If you did not install pynvml directly, please report this to the maintainers of the package that installed pynvml for you.
   import pynvml  # type: ignore[import]
@@ -486,9 +484,9 @@ The attention layers in this model are transitioning from computing the RoPE emb
 [PRUNE] Layer 25: seq_len=214, keep_k=171, kept=171, pruned=43, ratio=20.09%
 [Length 1024] End2End Results:
   Baseline: prefill=0.1259s, decode=2.1678s, total=2.2937s
-  SDTP:     prefill=0.1369s, decode=2.5026s, total=2.6395s
+  E-RECAP:  prefill=0.1369s, decode=2.5026s, total=2.6395s
   Speedup:  prefill=0.92x, decode=0.87x, total=0.87x
-  KV Cache: baseline=1024, sdtp=171, reduction=83.30%
+  KV Cache: baseline=1024, erecap=171, reduction=83.30%
 [PRUNE] Layer 4: seq_len=2048, keep_k=1638, kept=1638, pruned=410, ratio=20.02%
 [PRUNE] Layer 7: seq_len=1638, keep_k=1310, kept=1310, pruned=328, ratio=20.02%
 [PRUNE] Layer 10: seq_len=1310, keep_k=1048, kept=1048, pruned=262, ratio=20.00%
@@ -499,9 +497,9 @@ The attention layers in this model are transitioning from computing the RoPE emb
 [PRUNE] Layer 25: seq_len=428, keep_k=342, kept=342, pruned=86, ratio=20.09%
 [Length 2048] End2End Results:
   Baseline: prefill=0.2989s, decode=2.5838s, total=2.8827s
-  SDTP:     prefill=0.1850s, decode=2.5600s, total=2.7450s
+  E-RECAP:  prefill=0.1850s, decode=2.5600s, total=2.7450s
   Speedup:  prefill=1.62x, decode=1.01x, total=1.05x
-  KV Cache: baseline=2048, sdtp=342, reduction=83.30%
+  KV Cache: baseline=2048, erecap=342, reduction=83.30%
 [PRUNE] Layer 4: seq_len=4096, keep_k=3276, kept=3276, pruned=820, ratio=20.02%
 [PRUNE] Layer 7: seq_len=3276, keep_k=2620, kept=2620, pruned=656, ratio=20.02%
 [PRUNE] Layer 10: seq_len=2620, keep_k=2096, kept=2096, pruned=524, ratio=20.00%
@@ -512,9 +510,9 @@ The attention layers in this model are transitioning from computing the RoPE emb
 [PRUNE] Layer 25: seq_len=857, keep_k=685, kept=685, pruned=172, ratio=20.07%
 [Length 4096] End2End Results:
   Baseline: prefill=0.7303s, decode=0.2506s, total=0.9809s
-  SDTP:     prefill=0.3790s, decode=2.6229s, total=3.0019s
+  E-RECAP:  prefill=0.3790s, decode=2.6229s, total=3.0019s
   Speedup:  prefill=1.93x, decode=0.10x, total=0.33x
-  KV Cache: baseline=4096, sdtp=685, reduction=83.28%
+  KV Cache: baseline=4096, erecap=685, reduction=83.28%
 [PRUNE] Layer 4: seq_len=8192, keep_k=6553, kept=6553, pruned=1639, ratio=20.01%
 [PRUNE] Layer 7: seq_len=6553, keep_k=5242, kept=5242, pruned=1311, ratio=20.01%
 [PRUNE] Layer 10: seq_len=5242, keep_k=4193, kept=4193, pruned=1049, ratio=20.01%
@@ -525,9 +523,9 @@ The attention layers in this model are transitioning from computing the RoPE emb
 [PRUNE] Layer 25: seq_len=1716, keep_k=1372, kept=1372, pruned=344, ratio=20.05%
 [Length 8192] End2End Results:
   Baseline: prefill=1.3620s, decode=3.2932s, total=4.6553s
-  SDTP:     prefill=0.7230s, decode=2.7792s, total=3.5021s
+  E-RECAP:  prefill=0.7230s, decode=2.7792s, total=3.5021s
   Speedup:  prefill=1.88x, decode=1.18x, total=1.33x
-  KV Cache: baseline=8192, sdtp=1372, reduction=83.25%
+  KV Cache: baseline=8192, erecap=1372, reduction=83.25%
 [PRUNE] Layer 4: seq_len=16384, keep_k=13107, kept=13107, pruned=3277, ratio=20.00%
 [PRUNE] Layer 7: seq_len=13107, keep_k=10485, kept=10485, pruned=2622, ratio=20.00%
 [PRUNE] Layer 10: seq_len=10485, keep_k=8388, kept=8388, pruned=2097, ratio=20.00%
@@ -538,9 +536,9 @@ The attention layers in this model are transitioning from computing the RoPE emb
 [PRUNE] Layer 25: seq_len=3435, keep_k=2748, kept=2748, pruned=687, ratio=20.00%
 [Length 16384] End2End Results:
   Baseline: prefill=3.5332s, decode=4.5548s, total=8.0879s
-  SDTP:     prefill=1.6170s, decode=0.7167s, total=2.3337s
+  E-RECAP:  prefill=1.6170s, decode=0.7167s, total=2.3337s
   Speedup:  prefill=2.19x, decode=6.36x, total=3.47x
-  KV Cache: baseline=16384, sdtp=2748, reduction=83.23%
+  KV Cache: baseline=16384, erecap=2748, reduction=83.23%
 This is a friendly reminder - the current text generation call will exceed the model's predefined maximum length (32768). Depending on the model, you may observe exceptions, performance degradation, or nothing at all.
 [PRUNE] Layer 4: seq_len=32768, keep_k=26214, kept=26214, pruned=6554, ratio=20.00%
 [PRUNE] Layer 7: seq_len=26214, keep_k=20971, kept=20971, pruned=5243, ratio=20.00%
@@ -552,14 +550,14 @@ This is a friendly reminder - the current text generation call will exceed the m
 [PRUNE] Layer 25: seq_len=6870, keep_k=5496, kept=5496, pruned=1374, ratio=20.00%
 [Length 32768] End2End Results:
   Baseline: prefill=8.0707s, decode=6.5977s, total=14.6684s
-  SDTP:     prefill=3.7549s, decode=3.9921s, total=7.7469s
+  E-RECAP:  prefill=3.7549s, decode=3.9921s, total=7.7469s
   Speedup:  prefill=2.15x, decode=1.65x, total=1.89x
-  KV Cache: baseline=32768, sdtp=5496, reduction=83.23%
+  KV Cache: baseline=32768, erecap=5496, reduction=83.23%
 [OK] Results saved to results/latency_results_keep08.json
 [OK] Baseline results saved to results/latency_baseline_keep08.json
-[OK] SDTP results saved to results/latency_sdtp_keep08.json
+[OK] E-RECAP results saved to results/latency_erecap_keep08.json
 
-[Config: keep07] Profiling baseline vs SDTP (keep_ratio=0.7)
+[Config: keep07] Profiling baseline vs E-RECAP (keep_ratio=0.7)
 ----------------------------------------
 /home/user2/.local/lib/python3.10/site-packages/torch/cuda/__init__.py:63: FutureWarning: The pynvml package is deprecated. Please install nvidia-ml-py instead. If you did not install pynvml directly, please report this to the maintainers of the package that installed pynvml for you.
   import pynvml  # type: ignore[import]
@@ -587,9 +585,9 @@ The attention layers in this model are transitioning from computing the RoPE emb
 [PRUNE] Layer 25: seq_len=82, keep_k=57, kept=57, pruned=25, ratio=30.49%
 [Length 1024] End2End Results:
   Baseline: prefill=0.1315s, decode=2.1656s, total=2.2971s
-  SDTP:     prefill=0.1177s, decode=1.3872s, total=1.5049s
+  E-RECAP:  prefill=0.1177s, decode=1.3872s, total=1.5049s
   Speedup:  prefill=1.12x, decode=1.56x, total=1.53x
-  KV Cache: baseline=1024, sdtp=57, reduction=94.43%
+  KV Cache: baseline=1024, erecap=57, reduction=94.43%
 [PRUNE] Layer 4: seq_len=2048, keep_k=1433, kept=1433, pruned=615, ratio=30.03%
 [PRUNE] Layer 7: seq_len=1433, keep_k=1003, kept=1003, pruned=430, ratio=30.01%
 [PRUNE] Layer 10: seq_len=1003, keep_k=702, kept=702, pruned=301, ratio=30.01%
@@ -600,9 +598,9 @@ The attention layers in this model are transitioning from computing the RoPE emb
 [PRUNE] Layer 25: seq_len=168, keep_k=117, kept=117, pruned=51, ratio=30.36%
 [Length 2048] End2End Results:
   Baseline: prefill=0.3211s, decode=2.5810s, total=2.9021s
-  SDTP:     prefill=0.1452s, decode=0.3824s, total=0.5275s
+  E-RECAP:  prefill=0.1452s, decode=0.3824s, total=0.5275s
   Speedup:  prefill=2.21x, decode=6.75x, total=5.50x
-  KV Cache: baseline=2048, sdtp=117, reduction=94.29%
+  KV Cache: baseline=2048, erecap=117, reduction=94.29%
 [PRUNE] Layer 4: seq_len=4096, keep_k=2867, kept=2867, pruned=1229, ratio=30.00%
 [PRUNE] Layer 7: seq_len=2867, keep_k=2006, kept=2006, pruned=861, ratio=30.03%
 [PRUNE] Layer 10: seq_len=2006, keep_k=1404, kept=1404, pruned=602, ratio=30.01%
@@ -613,9 +611,9 @@ The attention layers in this model are transitioning from computing the RoPE emb
 [PRUNE] Layer 25: seq_len=336, keep_k=235, kept=235, pruned=101, ratio=30.06%
 [Length 4096] End2End Results:
   Baseline: prefill=0.7419s, decode=0.2633s, total=1.0052s
-  SDTP:     prefill=0.3124s, decode=1.2191s, total=1.5315s
+  E-RECAP:  prefill=0.3124s, decode=1.2191s, total=1.5315s
   Speedup:  prefill=2.37x, decode=0.22x, total=0.66x
-  KV Cache: baseline=4096, sdtp=235, reduction=94.26%
+  KV Cache: baseline=4096, erecap=235, reduction=94.26%
 [PRUNE] Layer 4: seq_len=8192, keep_k=5734, kept=5734, pruned=2458, ratio=30.00%
 [PRUNE] Layer 7: seq_len=5734, keep_k=4013, kept=4013, pruned=1721, ratio=30.01%
 [PRUNE] Layer 10: seq_len=4013, keep_k=2809, kept=2809, pruned=1204, ratio=30.00%
@@ -626,9 +624,9 @@ The attention layers in this model are transitioning from computing the RoPE emb
 [PRUNE] Layer 25: seq_len=674, keep_k=471, kept=471, pruned=203, ratio=30.12%
 [Length 8192] End2End Results:
   Baseline: prefill=1.3901s, decode=3.2879s, total=4.6780s
-  SDTP:     prefill=0.5485s, decode=0.3599s, total=0.9084s
+  E-RECAP:  prefill=0.5485s, decode=0.3599s, total=0.9084s
   Speedup:  prefill=2.53x, decode=9.14x, total=5.15x
-  KV Cache: baseline=8192, sdtp=471, reduction=94.25%
+  KV Cache: baseline=8192, erecap=471, reduction=94.25%
 [PRUNE] Layer 4: seq_len=16384, keep_k=11468, kept=11468, pruned=4916, ratio=30.00%
 [PRUNE] Layer 7: seq_len=11468, keep_k=8027, kept=8027, pruned=3441, ratio=30.01%
 [PRUNE] Layer 10: seq_len=8027, keep_k=5618, kept=5618, pruned=2409, ratio=30.01%
@@ -639,9 +637,9 @@ The attention layers in this model are transitioning from computing the RoPE emb
 [PRUNE] Layer 25: seq_len=1348, keep_k=943, kept=943, pruned=405, ratio=30.04%
 [Length 16384] End2End Results:
   Baseline: prefill=3.5929s, decode=4.5489s, total=8.1417s
-  SDTP:     prefill=1.3163s, decode=0.3606s, total=1.6769s
+  E-RECAP:  prefill=1.3163s, decode=0.3606s, total=1.6769s
   Speedup:  prefill=2.73x, decode=12.62x, total=4.86x
-  KV Cache: baseline=16384, sdtp=943, reduction=94.24%
+  KV Cache: baseline=16384, erecap=943, reduction=94.24%
 This is a friendly reminder - the current text generation call will exceed the model's predefined maximum length (32768). Depending on the model, you may observe exceptions, performance degradation, or nothing at all.
 [PRUNE] Layer 4: seq_len=32768, keep_k=22937, kept=22937, pruned=9831, ratio=30.00%
 [PRUNE] Layer 7: seq_len=22937, keep_k=16055, kept=16055, pruned=6882, ratio=30.00%
@@ -653,14 +651,14 @@ This is a friendly reminder - the current text generation call will exceed the m
 [PRUNE] Layer 25: seq_len=2697, keep_k=1887, kept=1887, pruned=810, ratio=30.03%
 [Length 32768] End2End Results:
   Baseline: prefill=8.1968s, decode=6.5584s, total=14.7552s
-  SDTP:     prefill=2.8968s, decode=2.9200s, total=5.8167s
+  E-RECAP:  prefill=2.8968s, decode=2.9200s, total=5.8167s
   Speedup:  prefill=2.83x, decode=2.25x, total=2.54x
-  KV Cache: baseline=32768, sdtp=1887, reduction=94.24%
+  KV Cache: baseline=32768, erecap=1887, reduction=94.24%
 [OK] Results saved to results/latency_results_keep07.json
 [OK] Baseline results saved to results/latency_baseline_keep07.json
-[OK] SDTP results saved to results/latency_sdtp_keep07.json
+[OK] E-RECAP results saved to results/latency_erecap_keep07.json
 
 ==========================================
 [OK] All configurations completed!
 ==========================================
-user2@bld-Rack-Server:/data/private/user2/workspace/SDTP$ 
+user2@bld-Rack-Server:/data/private/user2/workspace/E-RECAP$ 

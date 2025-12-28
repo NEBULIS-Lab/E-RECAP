@@ -1,4 +1,4 @@
-# Multi-GPU SDTP 推理（自动分片）
+# Multi-GPU E-RECAP 推理（自动分片）
 
 
 import argparse
@@ -178,7 +178,7 @@ def apply_token_pruning(hidden_states, pruning_module, keep_ratio):
 
 
 # ============================
-# Manual SDTP forward
+# Manual E-RECAP forward
 # ============================
 def prefill_with_pruning(model, input_ids, attention_mask, pruners, keep_ratio):
     """
@@ -282,7 +282,7 @@ def profile_lengths(lengths, keep_ratio, save_json: bool = True):
     
     # Store results
     baseline_results = {}
-    sdtp_results = {}
+            erecap_results = {}
 
     for L in lengths:
         input_ids = None
@@ -308,20 +308,20 @@ def profile_lengths(lengths, keep_ratio, save_json: bool = True):
             except Exception as e:
                 print(f"[Length {L}] Baseline test failed: {e}")
             
-            # Test SDTP
+            # Test E-RECAP
             try:
-            sdtp_t = measure_latency(
+                erecap_t = measure_latency(
                 lambda x, m: prefill_with_pruning(model, x, m, pruners, keep_ratio),
                 input_ids, attention_mask
             )
-                sdtp_results[str(L)] = sdtp_t
-                print(f"[Length {L}] sdtp={sdtp_t:.4f}s")
+                erecap_results[str(L)] = erecap_t
+                print(f"[Length {L}] erecap={erecap_t:.4f}s")
                 
                 if str(L) in baseline_results:
-                    speedup = baseline_results[str(L)] / sdtp_t if sdtp_t > 0 else float("inf")
+                    speedup = baseline_results[str(L)] / erecap_t if erecap_t > 0 else float("inf")
                     print(f"[Length {L}] speedup={speedup:.2f}x")
             except Exception as e:
-                print(f"[Length {L}] SDTP test failed: {e}")
+                print(f"[Length {L}] E-RECAP test failed: {e}")
                 import traceback
                 traceback.print_exc()
 
@@ -341,7 +341,7 @@ def profile_lengths(lengths, keep_ratio, save_json: bool = True):
         os.makedirs("results", exist_ok=True)
         
         baseline_path = "results/latency_baseline_multigpu.json"
-        sdtp_path = "results/latency_sdtp_multigpu.json"
+        erecap_path = "results/latency_erecap_multigpu.json"
         
         # Save baseline results if available
         if baseline_results:
@@ -351,13 +351,13 @@ def profile_lengths(lengths, keep_ratio, save_json: bool = True):
         else:
             print(f"[Warning] No baseline results to save")
         
-        # Save SDTP results if available
-        if sdtp_results:
-        with open(sdtp_path, "w") as f:
-            json.dump(sdtp_results, f, indent=2)
-        print(f"[OK] SDTP results saved to {sdtp_path}")
+        # Save E-RECAP results if available
+        if erecap_results:
+        with open(erecap_path, "w") as f:
+            json.dump(erecap_results, f, indent=2)
+        print(f"[OK] E-RECAP results saved to {erecap_path}")
         else:
-            print(f"[Warning] No SDTP results to save (all tests may have failed)")
+            print(f"[Warning] No E-RECAP results to save (all tests may have failed)")
 
 
 # ============================
@@ -382,7 +382,7 @@ def generate_text(prompt):
 def parse_args():
     p = argparse.ArgumentParser()
     p.add_argument("--mode", choices=["profile", "generate"], default="profile")
-    p.add_argument("--prompt", type=str, default="Hello SDTP multi GPU!")
+    p.add_argument("--prompt", type=str, default="Hello E-RECAP multi GPU!")
     p.add_argument("--lengths", type=int, nargs="+", default=[1024, 2048, 4096, 8192, 16384, 32768])
     p.add_argument("--keep_ratio", type=float, default=KEEP_RATIO)
     return p.parse_args()

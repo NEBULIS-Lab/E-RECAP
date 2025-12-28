@@ -2,11 +2,11 @@ import torch
 import torch.nn as nn
 from transformers import AutoTokenizer, AutoModelForCausalLM
 
-# Import SDTP functions from inference_sdtp
+# Import E-RECAP functions from inference_erecap
 import sys
 import os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../../..'))
-from src.inference_sdtp import (
+from src.inference_erecap import (
     TokenPruningModule,
     prefill_with_pruning,
     PRUNE_LAYERS,
@@ -16,7 +16,7 @@ from src.inference_sdtp import (
 
 class ModelWrapper:
     """
-    Unified wrapper for Baseline & SDTP model.
+    Unified wrapper for Baseline & E-RECAP model.
 
     - setup 阶段：只打印信息（real_load=False）
 
@@ -86,8 +86,8 @@ class ModelWrapper:
         if self.tokenizer.pad_token is None:
             self.tokenizer.pad_token = self.tokenizer.eos_token
 
-        # Load pruning modules if SDTP mode
-        if self.mode == "sdtp" and self.pruning_module_path:
+        # Load pruning modules if E-RECAP mode
+        if self.mode == "erecap" and self.pruning_module_path:
             print("[Init] Loading pruning modules...")
             hidden_size = self.model.config.hidden_size
             
@@ -137,8 +137,8 @@ class ModelWrapper:
         attention_mask = attention_mask.to(self.device)
 
         with torch.no_grad():
-            if self.mode == "sdtp" and self.pruning_modules is not None:
-                # SDTP mode: use prefill_with_pruning for prefill phase
+            if self.mode == "erecap" and self.pruning_modules is not None:
+                # E-RECAP mode: use prefill_with_pruning for prefill phase
                 # Then use pruned input_ids for decode phase to benefit from reduced KV cache
                 
                 # Prefill with pruning and request pruned input_ids

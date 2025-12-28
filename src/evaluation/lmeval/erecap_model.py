@@ -1,7 +1,7 @@
 """
-SDTP Model wrapper for lm-eval-harness
+E-RECAP Model wrapper for lm-eval-harness
 
-This module provides a custom LLM wrapper that integrates SDTP models
+This module provides a custom LLM wrapper that integrates E-RECAP models
 with the lm-eval-harness evaluation framework.
 
 IMPORTANT: This is a setup/placeholder implementation.
@@ -15,12 +15,12 @@ TODO: In actual evaluation phases, implement real model loading and inference.
 from typing import List, Tuple, Optional, Union
 
 
-class SDTPModel:
+class ERECAPModel:
     """
-    SDTP wrapper for lm-eval-harness.
+    E-RECAP wrapper for lm-eval-harness.
     
     This class provides the interface required by lm-eval-harness
-    to evaluate SDTP models. It wraps both baseline and SDTP models.
+    to evaluate E-RECAP models. It wraps both baseline and E-RECAP models.
     
     Setup-stage only. No inference executed.
     
@@ -39,7 +39,7 @@ class SDTPModel:
         **kwargs
     ):
         """
-        Initialize SDTP model wrapper.
+        Initialize E-RECAP model wrapper.
         
         Args:
             model_name: Model name or path (e.g., "checkpoints/qwen2-7b-instruct")
@@ -58,16 +58,16 @@ class SDTPModel:
         self.tokenizer = None
         self.is_loaded = False
         
-        print(f"[SDTPModel] Initialized (no model loaded)")
+        print(f"[ERECAPModel] Initialized (no model loaded)")
         print(f"  Model: {self.model_name}")
         print(f"  Pruning module: {self.pruning_module or 'None (baseline)'}")
         print(f"  Device: {self.device}")
-        print(f"  Mode: {'SDTP' if self.pruning_module else 'Baseline'}")
+        print(f"  Mode: {'E-RECAP' if self.pruning_module else 'Baseline'}")
     
     def __str__(self) -> str:
         """String representation of model wrapper."""
-        mode = "SDTP" if self.pruning_module else "Baseline"
-        return f"SDTPModel(name={self.model_name}, mode={mode}, pruner={self.pruning_module})"
+        mode = "E-RECAP" if self.pruning_module else "Baseline"
+        return f"ERECAPModel(name={self.model_name}, mode={mode}, pruner={self.pruning_module})"
     
     def __repr__(self) -> str:
         """Detailed representation of model wrapper."""
@@ -94,13 +94,13 @@ class SDTPModel:
             NotImplementedError: Always raised in setup phase
         """
         if not self.is_loaded:
-            print(f"[SDTPModel] generate_until() called but model not loaded (setup phase)")
+            print(f"[ERECAPModel] generate_until() called but model not loaded (setup phase)")
             print(f"  Number of requests: {len(requests)}")
             print(f"  First request prompt length: {len(requests[0][0]) if requests else 0} chars")
             print(f"  Generation kwargs: {requests[0][1] if requests else {}}")
         
         raise NotImplementedError(
-            "Inference disabled in setup phase. SDTP not executed. "
+            "Inference disabled in setup phase. E-RECAP not executed. "
             "This method will be implemented in actual evaluation phase."
         )
     
@@ -123,12 +123,12 @@ class SDTPModel:
             NotImplementedError: Always raised in setup phase
         """
         if not self.is_loaded:
-            print(f"[SDTPModel] loglikelihood() called but model not loaded (setup phase)")
+            print(f"[ERECAPModel] loglikelihood() called but model not loaded (setup phase)")
             print(f"  Number of requests: {len(requests)}")
             print(f"  First context length: {len(requests[0][0]) if requests else 0} chars")
         
         raise NotImplementedError(
-            "Inference disabled in setup phase. SDTP not executed. "
+            "Inference disabled in setup phase. E-RECAP not executed. "
             "This method will be implemented in actual evaluation phase."
         )
     
@@ -149,11 +149,11 @@ class SDTPModel:
             NotImplementedError: Always raised in setup phase
         """
         if not self.is_loaded:
-            print(f"[SDTPModel] loglikelihood_rolling() called but model not loaded (setup phase)")
+            print(f"[ERECAPModel] loglikelihood_rolling() called but model not loaded (setup phase)")
             print(f"  Number of requests: {len(requests)}")
         
         raise NotImplementedError(
-            "Inference disabled in setup phase. SDTP not executed. "
+            "Inference disabled in setup phase. E-RECAP not executed. "
             "This method will be implemented in actual evaluation phase."
         )
     
@@ -163,7 +163,7 @@ class SDTPModel:
         
         This method will be implemented in actual evaluation phase to:
         1. Tokenize input context
-        2. Apply SDTP pruning (if enabled)
+        2. Apply E-RECAP pruning (if enabled)
         3. Generate tokens using model.generate()
         4. Decode and return generated text
         
@@ -184,7 +184,7 @@ class SDTPModel:
         
         This method will be implemented in actual evaluation phase to:
         1. Run model forward pass
-        2. Apply SDTP pruning if enabled
+        2. Apply E-RECAP pruning if enabled
         3. Return model outputs
         
         Args:
@@ -196,9 +196,9 @@ class SDTPModel:
         # Placeholder - will be implemented in actual evaluation phase
         raise NotImplementedError("Actual model call not implemented in setup phase")
     
-    def is_sdtp(self) -> bool:
+    def is_erecap(self) -> bool:
         """
-        Check if this wrapper is configured for SDTP.
+        Check if this wrapper is configured for E-RECAP.
         
         Returns:
             True if pruning_module is set, False otherwise
@@ -217,7 +217,7 @@ class SDTPModel:
             "pruning_module": self.pruning_module,
             "device": self.device,
             "is_loaded": self.is_loaded,
-            "is_sdtp": self.is_sdtp(),
+            "is_erecap": self.is_erecap(),
             **self.config
         }
 

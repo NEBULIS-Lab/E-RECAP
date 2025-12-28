@@ -1,8 +1,8 @@
 """
-lm-eval-harness integration for SDTP evaluation
+lm-eval-harness integration for E-RECAP evaluation
 
 This module provides custom task and model wrappers for evaluating
-SDTP models using lm-eval-harness framework.
+E-RECAP models using lm-eval-harness framework.
 
 IMPORTANT: This is a setup/placeholder implementation.
 - Does NOT execute real inference

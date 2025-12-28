@@ -161,7 +161,7 @@ class LongBenchTask:
         In the actual evaluation phase, this will run real inference.
         
         Args:
-            model: Model wrapper instance (SDTPModel or baseline)
+            model: Model wrapper instance (ERECAPModel or baseline)
             dataset: Optional dataset override
             **kwargs: Additional evaluation arguments
             
@@ -175,7 +175,7 @@ class LongBenchTask:
         print(f"[LM-EVAL] Model config: {model.model_name if hasattr(model, 'model_name') else 'N/A'}")
         
         if hasattr(model, 'pruning_module') and model.pruning_module:
-            print(f"[LM-EVAL] Mode: SDTP (with pruning)")
+            print(f"[LM-EVAL] Mode: E-RECAP (with pruning)")
         else:
             print(f"[LM-EVAL] Mode: Baseline (no pruning)")
         

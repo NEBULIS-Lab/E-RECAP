@@ -1,6 +1,6 @@
 """
-lm-eval-harness runner for SDTP evaluation
-Note: This requires custom integration with lm-eval-harness to support SDTP.
+lm-eval-harness runner for E-RECAP evaluation
+Note: This requires custom integration with lm-eval-harness to support E-RECAP.
 Currently provides a wrapper script structure.
 """
 import subprocess
@@ -14,17 +14,17 @@ LM_TASKS = ["copa", "piqa", "winogrande", "math_qa", "boolq", "cb", "wic", "wsc"
 
 def run_lmeval(model_type, output_path):
     """
-    Use lm-eval-harness via subprocess to evaluate SDTP.
+    Use lm-eval-harness via subprocess to evaluate E-RECAP.
     
     Note: This requires lm-eval-harness to be installed and configured
-    to support SDTP model wrapper. For now, this is a placeholder.
+    to support E-RECAP model wrapper. For now, this is a placeholder.
     
     Args:
-        model_type: "baseline" or "sdtp"
+        model_type: "baseline" or "erecap"
         output_path: Path to save results
     """
     model_path = "checkpoints/qwen2-7b-instruct"
-    pruner_path = "checkpoints/pruning_module.pt" if model_type == "sdtp" else None
+    pruner_path = "checkpoints/pruning_module.pt" if model_type == "erecap" else None
     
     # Check if lm-eval is installed
     try:
@@ -35,11 +35,11 @@ def run_lmeval(model_type, output_path):
         )
     except FileNotFoundError:
         print("[Error] lm-eval-harness not found. Install with: pip install lm-eval")
-        print("[Info] For SDTP support, you need to create a custom model wrapper.")
-        print("[Info] See Phase D for SDTP integration with lm-eval-harness.")
+        print("[Info] For E-RECAP support, you need to create a custom model wrapper.")
+        print("[Info] See Phase D for E-RECAP integration with lm-eval-harness.")
         return
     
-    # Note: Standard lm-eval doesn't support SDTP pruning yet
+    # Note: Standard lm-eval doesn't support E-RECAP pruning yet
     # This would need a custom model wrapper (see Phase D)
     cmd = [
         "lm_eval",
@@ -52,7 +52,7 @@ def run_lmeval(model_type, output_path):
     ]
     
     print("[lm-eval] Running:", " ".join(cmd))
-    print("[Warning] This will run baseline model only. SDTP support requires Phase D integration.")
+    print("[Warning] This will run baseline model only. E-RECAP support requires Phase D integration.")
     
     try:
         subprocess.run(cmd, check=True)
@@ -63,10 +63,10 @@ def run_lmeval(model_type, output_path):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="lm-eval-harness runner for SDTP")
+    parser = argparse.ArgumentParser(description="lm-eval-harness runner for E-RECAP")
     parser.add_argument("--type", type=str, default="baseline", 
-                       choices=["baseline", "sdtp"],
-                       help="Model type: baseline or sdtp")
+                       choices=["baseline", "erecap"],
+                       help="Model type: baseline or erecap")
     parser.add_argument("--out", type=str, default="results/lmeval.json",
                        help="Output JSON path")
     

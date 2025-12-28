@@ -1,5 +1,5 @@
 """
-Ablation study script for SDTP
+Ablation study script for E-RECAP
 Compares different pruning configurations (no training, inference only)
 """
 import json
@@ -11,13 +11,13 @@ import os
 project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, project_root)
 
-from src.evaluation.sdtp_wrapper import SDTPInference
+from src.evaluation.erecap_wrapper import ERECAPInference
 
 # Ablation configurations
 # Note: These checkpoint files need to be trained separately with different configs
 ABLATION_CONFIGS = {
     "baseline": None,
-    "sdtp": "checkpoints/pruning_module.pt",
+    "erecap": "checkpoints/pruning_module.pt",
     # The following configs require retraining with different settings:
     # "no_rank_loss": "checkpoints/pruning_no_rank.pt",  # Train without ranking loss
     # "no_mse_loss": "checkpoints/pruning_no_mse.pt",    # Train without MSE loss
@@ -51,7 +51,7 @@ def run_ablation(output_path="results/ablation_summary.json", test_prompt=None):
                 }
                 continue
             
-            model = SDTPInference(
+            model = ERECAPInference(
                 model_path="checkpoints/qwen2-7b-instruct",
                 pruner_path=pruner_path,
                 device="cuda"
@@ -91,7 +91,7 @@ def run_ablation(output_path="results/ablation_summary.json", test_prompt=None):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Ablation study for SDTP")
+    parser = argparse.ArgumentParser(description="Ablation study for E-RECAP")
     parser.add_argument("--out", type=str, default="results/ablation_summary.json",
                        help="Output JSON path")
     parser.add_argument("--prompt", type=str, default=None,

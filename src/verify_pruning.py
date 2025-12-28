@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-验证SDTP剪枝是否真正生效的脚本
+验证E-RECAP剪枝是否真正生效的脚本
 检查：
 1. Prefill阶段是否真的剪枝了token
 2. 剪枝后的序列长度是否符合预期
@@ -10,7 +10,7 @@
 import torch
 import torch.nn as nn
 from transformers import AutoModelForCausalLM, AutoTokenizer
-from inference_sdtp import (
+from inference_erecap import (
     load_model_and_pruners,
     prefill_with_pruning,
     apply_token_pruning,
@@ -183,7 +183,7 @@ def verify_layer_wise_pruning():
 
 def main():
     print("="*60)
-    print("SDTP Pruning Verification Script")
+    print("E-RECAP Pruning Verification Script")
     print("="*60)
     
     # Test different configurations

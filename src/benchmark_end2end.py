@@ -1,4 +1,4 @@
-# End-to-End Latency Benchmarking for SDTP
+# End-to-End Latency Benchmarking for E-RECAP
 # Measures prefill + decode (128 tokens) latency
 # Simplified implementation to avoid 0-length tensor errors
 
@@ -8,9 +8,9 @@ import torch.nn as nn
 from typing import Dict, Tuple, List, Optional
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
-# Import from inference_sdtp
+# Import from inference_erecap
 try:
-    from inference_sdtp import (
+    from inference_erecap import (
         load_model_and_pruners,
         prefill_with_pruning,
         KEEP09_CONFIG,
@@ -27,7 +27,7 @@ except ImportError:
     import sys
     import os
     sys.path.insert(0, os.path.dirname(__file__))
-    from inference_sdtp import (
+    from inference_erecap import (
         load_model_and_pruners,
         prefill_with_pruning,
         KEEP09_CONFIG,
@@ -54,7 +54,7 @@ def run_end2end_baseline(
     Run baseline end-to-end inference (prefill + generate).
     
     Baseline: no pruning, pure model.generate().
-    This function does NOT touch any SDTP modules or pruning logic.
+    This function does NOT touch any E-RECAP modules or pruning logic.
     
     Args:
         model: The language model
@@ -142,7 +142,7 @@ def run_end2end_baseline(
     }
 
 
-def run_end2end_sdtp(
+def run_end2end_erecap(
     model: AutoModelForCausalLM,
     tokenizer: AutoTokenizer,
     input_ids: torch.Tensor,
@@ -153,10 +153,10 @@ def run_end2end_sdtp(
     max_new_tokens: int = MAX_NEW_TOKENS,
 ) -> Dict:
     """
-    Run SDTP end-to-end inference with FALLBACK mode for Qwen2 GQA compatibility.
+    Run E-RECAP end-to-end inference with FALLBACK mode for Qwen2 GQA compatibility.
     
     FALLBACK STRATEGY:
-    - Prefill: Use SDTP pruning to reduce sequence length and KV cache size
+    - Prefill: Use E-RECAP pruning to reduce sequence length and KV cache size
     - Decode: Use standard model.generate() WITHOUT pruned KV cache
               This avoids GQA (num_key_value_heads) compatibility issues
     
@@ -176,19 +176,19 @@ def run_end2end_sdtp(
     device = input_ids.device
     model.eval()
 
-    # Note: We use prefill_with_pruning from inference_sdtp directly,
-    # which doesn't require SDTPModel wrapper. The pruning_modules
+    # Note: We use prefill_with_pruning from inference_erecap directly,
+    # which doesn't require ERECAPModel wrapper. The pruning_modules
     # are passed directly to prefill_with_pruning.
 
     with torch.no_grad():
         # ============================================
-        # STEP 1: Prefill with SDTP pruning
+        # STEP 1: Prefill with E-RECAP pruning
         # ============================================
         if device.type == "cuda":
             torch.cuda.synchronize()
         prefill_start = time.perf_counter()
 
-        # Use the simpler prefill_with_pruning from inference_sdtp (not prefill_with_pruning_infer)
+        # Use the simpler prefill_with_pruning from inference_erecap (not prefill_with_pruning_infer)
         # This avoids KV cache manipulation issues
         # MIN_HEAD_TOKENS and MIN_TAIL_RATIO are already imported at module level
         # Request pruned input_ids for decode phase
@@ -216,7 +216,7 @@ def run_end2end_sdtp(
         prefill_time = prefill_end - prefill_start
 
         # Sanity checks
-        assert logits.size(1) > 0, "SDTP prefill returned empty sequence"
+        assert logits.size(1) > 0, "E-RECAP prefill returned empty sequence"
         final_seq_len = pruning_stats.get("final_length", input_ids.shape[1])
         
         # KV lengths after prefill: approximate by final_seq_len for all layers
@@ -274,7 +274,7 @@ def run_end2end_latency(
     tokenizer: AutoTokenizer,
     input_ids: torch.Tensor,
     attention_mask: torch.Tensor,
-    use_sdtp: bool = False,
+    use_erecap: bool = False,
     pruning_modules: Optional[nn.ModuleDict] = None,
     keep_ratio: float = 0.7,
     prune_layers: Optional[List[int]] = None,
@@ -288,10 +288,10 @@ def run_end2end_latency(
         tokenizer: The tokenizer
         input_ids: Input token IDs
         attention_mask: Attention mask
-        use_sdtp: Whether to use SDTP pruning
-        pruning_modules: Pruning modules (required if use_sdtp=True)
-        keep_ratio: Token keep ratio (required if use_sdtp=True)
-        prune_layers: List of layers to prune (required if use_sdtp=True)
+        use_erecap: Whether to use E-RECAP pruning
+        pruning_modules: Pruning modules (required if use_erecap=True)
+        keep_ratio: Token keep ratio (required if use_erecap=True)
+        prune_layers: List of layers to prune (required if use_erecap=True)
         max_new_tokens: Number of tokens to generate
         
     Returns:
@@ -304,10 +304,10 @@ def run_end2end_latency(
     if prune_layers is None:
         prune_layers = PRUNE_LAYERS
     
-    if use_sdtp:
+    if use_erecap:
         if pruning_modules is None:
-            raise ValueError("pruning_modules required when use_sdtp=True")
-        return run_end2end_sdtp(
+            raise ValueError("pruning_modules required when use_erecap=True")
+        return run_end2end_erecap(
             model, tokenizer, input_ids, attention_mask,
             pruning_modules, keep_ratio, prune_layers, max_new_tokens,
         )
@@ -323,12 +323,12 @@ if __name__ == "__main__":
     
     parser = argparse.ArgumentParser()
     parser.add_argument("--length", type=int, default=4096)
-    parser.add_argument("--use_sdtp", action="store_true")
+    parser.add_argument("--use_erecap", action="store_true")
     parser.add_argument("--config", choices=["keep09", "keep08", "keep07"], default="keep07")
     args = parser.parse_args()
     
     # Load model
-    if args.use_sdtp:
+    if args.use_erecap:
         if args.config == "keep09":
             config = KEEP09_CONFIG
         elif args.config == "keep08":
@@ -351,7 +351,7 @@ if __name__ == "__main__":
     # Run benchmark
     result = run_end2end_latency(
         model, tokenizer, input_ids, attention_mask,
-        use_sdtp=args.use_sdtp,
+        use_erecap=args.use_erecap,
         pruning_modules=pruners,
         keep_ratio=keep_ratio,
         prune_layers=prune_layers,
@@ -364,5 +364,5 @@ if __name__ == "__main__":
     print(f"Decode time: {result['decode_time']:.4f}s")
     print(f"Total time: {result['total_time']:.4f}s")
     print(f"\nKV lengths after prefill: {result['kv_lens_after_prefill']}")
-    if args.use_sdtp and 'pruning_stats' in result:
+    if args.use_erecap and 'pruning_stats' in result:
         print(f"Pruning stats: {result['pruning_stats']}")

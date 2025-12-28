@@ -4,6 +4,9 @@ set -e
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$PROJECT_ROOT"
 
+# Set PYTHONPATH to ensure imports work correctly
+export PYTHONPATH="${PROJECT_ROOT}/src:${PYTHONPATH}"
+
 MODE=${1:-profile}
 BENCHMARK_MODE=${2:-prefill}  # prefill or end2end
 
@@ -15,9 +18,9 @@ if [ "$MODE" = "profile" ]; then
   echo ""
   
   # Run keep09 configuration
-  echo "[Config: keep09] Profiling baseline vs SDTP (keep_ratio=0.9)"
+  echo "[Config: keep09] Profiling baseline vs E-RECAP (keep_ratio=0.9)"
   echo "----------------------------------------"
-  python3 -u src/inference_sdtp.py \
+  python3 -u src/inference_erecap.py \
     --mode profile \
     --config keep09 \
     --benchmark_mode "$BENCHMARK_MODE" \
@@ -26,9 +29,9 @@ if [ "$MODE" = "profile" ]; then
   echo ""
   
   # Run keep08 configuration
-  echo "[Config: keep08] Profiling baseline vs SDTP (keep_ratio=0.8)"
+  echo "[Config: keep08] Profiling baseline vs E-RECAP (keep_ratio=0.8)"
   echo "----------------------------------------"
-  python3 -u src/inference_sdtp.py \
+  python3 -u src/inference_erecap.py \
     --mode profile \
     --config keep08 \
     --benchmark_mode "$BENCHMARK_MODE" \
@@ -37,9 +40,9 @@ if [ "$MODE" = "profile" ]; then
   echo ""
   
   # Run keep07 configuration
-  echo "[Config: keep07] Profiling baseline vs SDTP (keep_ratio=0.7)"
+  echo "[Config: keep07] Profiling baseline vs E-RECAP (keep_ratio=0.7)"
   echo "----------------------------------------"
-  python3 -u src/inference_sdtp.py \
+  python3 -u src/inference_erecap.py \
     --mode profile \
     --config keep07 \
     --benchmark_mode "$BENCHMARK_MODE" \
@@ -55,10 +58,10 @@ elif [ "$MODE" = "generate" ]; then
   shift
   PROMPT="$*"
   if [ -z "$PROMPT" ]; then
-    PROMPT="Hello, SDTP! Please introduce yourself."
+    PROMPT="Hello, E-RECAP! Please introduce yourself."
   fi
   echo "[Inference] Generating text with baseline model"
-  python3 -u src/inference_sdtp.py \
+  python3 -u src/inference_erecap.py \
     --mode generate \
     --prompt "$PROMPT"
 else

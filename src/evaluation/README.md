@@ -1,10 +1,10 @@
 # Evaluation Tools
 
-This directory contains evaluation and visualization tools for SDTP.
+This directory contains evaluation and visualization tools for E-RECAP.
 
 ## Files
 
-- `sdtp_wrapper.py`: SDTP inference wrapper class
+- `erecap_wrapper.py`: E-RECAP inference wrapper class
 - `longbench_eval.py`: LongBench evaluation script
 - `lmeval_runner.py`: lm-eval-harness runner
 - `ablation.py`: Ablation study script
@@ -17,7 +17,7 @@ This directory contains evaluation and visualization tools for SDTP.
 
 1. **Prepare JSON data files:**
    - `results/latency_baseline.json`: Baseline latency data
-   - `results/latency_sdtp.json`: SDTP latency data
+   - `results/latency_erecap.json`: E-RECAP latency data
    
    Format:
    ```json
@@ -38,7 +38,7 @@ This directory contains evaluation and visualization tools for SDTP.
    ```bash
    python3 src/evaluation/plot_latency.py \
        --baseline results/latency_baseline.json \
-       --sdtp results/latency_sdtp.json \
+       --erecap results/latency_erecap.json \
        --out_dir results/fig
    ```
 
@@ -55,12 +55,12 @@ If you have log files from inference runs, parse them first:
 python3 src/evaluation/parse_latency_log.py \
     --log logs/inference.log \
     --baseline results/latency_baseline.json \
-    --sdtp results/latency_sdtp.json
+    --erecap results/latency_erecap.json
 ```
 
 Expected log format:
 ```
-[Length 4096] baseline=0.7065s  sdtp=0.2527s  speedup=2.80x
-[Length 8192] baseline=1.2684s  sdtp=0.4920s  speedup=2.58x
+[Length 4096] baseline=0.7065s  erecap=0.2527s  speedup=2.80x
+[Length 8192] baseline=1.2684s  erecap=0.4920s  speedup=2.58x
 ```
 
