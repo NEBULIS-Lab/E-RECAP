@@ -340,6 +340,7 @@ The `scripts/` directory contains helper scripts for common tasks:
 
 **Hardware:** 8× NVIDIA RTX 5880 Ada Generation (48GB each), keep_ratio=0.7
 
+<!--
 ### Single GPU End-to-End Speedup
 
 | Keep Ratio | Sequence Length | Speedup |
@@ -352,6 +353,7 @@ The `scripts/` directory contains helper scripts for common tasks:
 | 0.7 | 32768 | 2.54× |
 
 **Hardware:** NVIDIA RTX 5880 Ada (48GB), single GPU
+-->
 
 ## Model Configuration
 
