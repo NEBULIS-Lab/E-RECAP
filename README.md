@@ -1,4 +1,4 @@
-# E-RECAP: Embodied REplanning with Cost-Aware Pruning
+## E-RECAP: Embodied REplanning with Cost-Aware Pruning
 
 <div align="center">
 
