@@ -80,9 +80,10 @@ E-RECAP/
 <tr><td style="text-align:left">LLaMA-3 / 3.1</td><td>8B</td><td>12 GB</td><td style="text-align:left">LLaMA-3.2</td><td>3B</td><td>4 GB</td></tr>
 <tr><td style="text-align:left">Mistral</td><td>7B</td><td>8 GB</td><td style="text-align:left">Qwen / Qwen2</td><td>7B</td><td>12 GB</td></tr>
 <tr><td style="text-align:left">Qwen / Qwen2</td><td>14B</td><td>16 GB</td><td style="text-align:left">Qwen2.5</td><td>7B</td><td>12 GB</td></tr>
-<tr><td style="text-align:left">Qwen2.5</td><td>14B</td><td>16 GB</td><td style="text-align:left">Yi</td><td>6B</td><td>8 GB</td></tr>
+<tr><td style="text-align:left">Qwen2.5</td><td>14B</td><td>16 GB</td><td style="text-align:left">Qwen3</td><td>7B</td><td>12 GB</td></tr>
+<tr><td style="text-align:left">Qwen3</td><td>14B</td><td>16 GB</td><td style="text-align:left">Yi</td><td>6B</td><td>8 GB</td></tr>
 <tr><td style="text-align:left">Yi</td><td>13B</td><td>16 GB</td><td style="text-align:left">DeepSeek</td><td>7B</td><td>12 GB</td></tr>
-<tr><td style="text-align:left">DeepSeek</td><td>14B</td><td>16 GB</td><td style="text-align:left">Gemma</td><td>7B</td><td>12 GB</td></tr>
+<tr><td style="text-align:left">DeepSeek</td><td>14B</td><td>16 GB</td><td style="text-align:left">Gemma-2</td><td>7B</td><td>12 GB</td></tr>
 <tr><td style="text-align:left">Phi-3</td><td>7B</td><td>12 GB</td><td style="text-align:left">ChatGLM3</td><td>6B</td><td>8 GB</td></tr>
 <tr><td style="text-align:left">Baichuan2</td><td>7B</td><td>12 GB</td><td style="text-align:left">Baichuan2</td><td>13B</td><td>16 GB</td></tr>
 <tr><td style="text-align:left">InternLM2</td><td>7B</td><td>12 GB</td><td style="text-align:left">InternLM2</td><td>20B</td><td>24 GB</td></tr>
