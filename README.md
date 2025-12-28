@@ -51,10 +51,33 @@ E-RECAP/
 
 - Python 3.10+
 - CUDA 12.1+
-- **Hardware**: 8× NVIDIA RTX 5880 Ada Generation (48GB VRAM each)
+- ≥50GB disk space for model storage
+
+### Hardware Requirements
+
+**Note:** The hardware requirements depend on the model you choose to use. The following are our test configurations, but you can run E-RECAP on any hardware that meets the minimum requirements for your selected model.
+
+**Our test setup:**
+- 8× NVIDIA RTX 5880 Ada Generation (48GB VRAM each)
   - Single GPU mode: Uses one GPU
   - Multi-GPU mode: Uses all 8 GPUs
-- ≥50GB disk space for model storage
+
+**Recommended VRAM by model:**
+
+| Model Name | Parameters | Minimum VRAM | Recommended VRAM (Stable) |
+|------------|------------|--------------|--------------------------|
+| LLaMA-2 | 7B | 4–5 GB | 8 GB |
+| LLaMA-2 | 13B | 8–10 GB | 16 GB |
+| LLaMA-3 / 3.1 | 8B | 6–8 GB | 12 GB |
+| Mistral | 7B | 4–5 GB | 8 GB |
+| Qwen | 7B | 6 GB | 12 GB |
+| Qwen | 14B | 10–12 GB | 16 GB |
+| Yi | 6B | 4–5 GB | 8 GB |
+| Yi | 13B | 8–10 GB | 16 GB |
+| DeepSeek | 7B | 6 GB | 12 GB |
+| DeepSeek | 14B | 10–12 GB | 16 GB |
+| Gemma | 7B | 6–8 GB | 12 GB |
+| Phi-3 | 7B | 6–8 GB | 12 GB |
 
 ### Installation
 
