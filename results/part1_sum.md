@@ -122,7 +122,7 @@ Layer 25 sample 0  shape torch.Size([512])
 
 **Functionality**
 - 冻结 Qwen2-7B，仅训练剪枝 MLP。
-- 加载 Stage 1 的 saliency 作为监督，结合 LM loss、MSE loss、Ranking loss（对 saliency 排序对齐）。
+- 使用 Dolly-15k 数据集进行训练，加载 Stage 1 的 saliency 作为监督，结合 LM loss、MSE loss、Ranking loss（对 saliency 排序对齐）。
 - 每个剪枝层一个独立的 `TokenPruningModule`（4096 → 1024 → 1），输出 token importance logit。
 - 使用 Gumbel-Softmax 生成 soft mask（训练时），硬剪枝将在推理阶段执行。
 - 训练完成后保存到 `checkpoints/pruning_module.pt`。
