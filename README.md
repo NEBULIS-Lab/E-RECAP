@@ -103,6 +103,8 @@ pip install torch --index-url https://download.pytorch.org/whl/cu121
 
 #### Model Setup
 
+**Note:** This repository provides Qwen2-7B-Instruct as an example for running and testing E-RECAP. The required files (`checkpoints/qwen2-7b-instruct/`, `checkpoints/pruning_module.pt`, and `checkpoints/saliency.pt`) are included. However, E-RECAP supports any HuggingFace-compatible Transformer model - the pruning module is model-agnostic and works with any model architecture that has a `hidden_size` configuration.
+
 **Place your model files:**
 1. Download or copy your model to `checkpoints/<model-name>/` directory
    - The model directory should contain `config.json`, model weights (`.safetensors` or `.bin`), and tokenizer files
@@ -113,8 +115,6 @@ pip install torch --index-url https://download.pytorch.org/whl/cu121
    MODEL_PATH = "checkpoints/<your-model-name>"
    ```
    Replace `<your-model-name>` with your actual model directory name.
-
-**Note:** E-RECAP supports any HuggingFace-compatible Transformer model. The pruning module is model-agnostic and works with any model architecture that has a `hidden_size` configuration.
 
 #### Pre-flight Check
 
@@ -276,8 +276,6 @@ E-RECAP implementation completed:
 - ✅ Single GPU inference (2.6-3× speedup)
 - ✅ Multi-GPU inference (8-10× speedup)
 
-See [E-RECAP Summary Report](results/part1_sum.md) for detailed results.
-
 ## Key Features
 
 - **Cost-Aware Pruning**: Remove redundant tokens during prefill to reduce computation
@@ -307,16 +305,4 @@ E-RECAP supports any HuggingFace-compatible Transformer model. To use a differen
    - The pruning module is model-specific and depends on the model's `hidden_size`
    - If your new model has the same `hidden_size`, you can reuse the existing `pruning_module.pt`
    - Otherwise, retrain by running Stage 2 with the new model
-
-**Example:** To use LLaMA2-7B instead of Qwen2-7B:
-```bash
-# 1. Place model in checkpoints/
-# checkpoints/llama2-7b/...
-
-# 2. Edit src/inference_erecap.py
-# MODEL_PATH = "checkpoints/llama2-7b"
-
-# 3. If hidden_size differs, retrain pruning module
-# bash scripts/run_stage2.sh
-```
 
