@@ -24,7 +24,9 @@ def build_dataloader(tokenizer: AutoTokenizer, num_samples: int) -> DataLoader:
     examples = []
     for idx in indices:
         item = dataset[idx]
-        text = f"{item['context']}\n{item['response']}"
+        # Include instruction, context, and response for complete semantic information
+        parts = [item.get('instruction', ''), item.get('context', ''), item['response']]
+        text = '\n'.join([p for p in parts if p])  # Only join non-empty parts
         enc = tokenizer(
             text,
             max_length=MAX_LEN,

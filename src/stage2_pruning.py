@@ -75,7 +75,9 @@ def build_dataloader(tokenizer: AutoTokenizer, dataset, num_examples: int) -> Da
     examples: List[Dict[str, torch.Tensor]] = []
     for idx in indices:
         item = dataset[idx]
-        text = f"{item['context']}\n{item['response']}"
+        # Include instruction, context, and response for complete semantic information
+        parts = [item.get('instruction', ''), item.get('context', ''), item['response']]
+        text = '\n'.join([p for p in parts if p])  # Only join non-empty parts
         encoding = tokenizer(
             text,
             max_length=MAX_LEN,
