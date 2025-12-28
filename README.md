@@ -64,20 +64,38 @@ E-RECAP/
 
 **Recommended VRAM by model:**
 
-| Model Name | Parameters | Minimum VRAM | Recommended VRAM (Stable) |
-|------------|------------|--------------|--------------------------|
-| LLaMA-2 | 7B | 4–5 GB | 8 GB |
-| LLaMA-2 | 13B | 8–10 GB | 16 GB |
-| LLaMA-3 / 3.1 | 8B | 6–8 GB | 12 GB |
-| Mistral | 7B | 4–5 GB | 8 GB |
-| Qwen | 7B | 6 GB | 12 GB |
-| Qwen | 14B | 10–12 GB | 16 GB |
-| Yi | 6B | 4–5 GB | 8 GB |
-| Yi | 13B | 8–10 GB | 16 GB |
-| DeepSeek | 7B | 6 GB | 12 GB |
-| DeepSeek | 14B | 10–12 GB | 16 GB |
-| Gemma | 7B | 6–8 GB | 12 GB |
-| Phi-3 | 7B | 6–8 GB | 12 GB |
+<table style="font-size: 0.85em;">
+<thead>
+<tr>
+<th style="text-align:left">Model</th>
+<th>Params</th>
+<th>Min VRAM</th>
+<th>Rec VRAM</th>
+</tr>
+</thead>
+<tbody>
+<tr><td style="text-align:left">LLaMA-2</td><td>7B</td><td>4–5 GB</td><td>8 GB</td></tr>
+<tr><td style="text-align:left">LLaMA-2</td><td>13B</td><td>8–10 GB</td><td>16 GB</td></tr>
+<tr><td style="text-align:left">LLaMA-3 / 3.1</td><td>8B</td><td>6–8 GB</td><td>12 GB</td></tr>
+<tr><td style="text-align:left">LLaMA-3.2</td><td>3B</td><td>2–3 GB</td><td>4 GB</td></tr>
+<tr><td style="text-align:left">Mistral</td><td>7B</td><td>4–5 GB</td><td>8 GB</td></tr>
+<tr><td style="text-align:left">Qwen / Qwen2</td><td>7B</td><td>6 GB</td><td>12 GB</td></tr>
+<tr><td style="text-align:left">Qwen / Qwen2</td><td>14B</td><td>10–12 GB</td><td>16 GB</td></tr>
+<tr><td style="text-align:left">Qwen2.5</td><td>7B</td><td>6 GB</td><td>12 GB</td></tr>
+<tr><td style="text-align:left">Qwen2.5</td><td>14B</td><td>10–12 GB</td><td>16 GB</td></tr>
+<tr><td style="text-align:left">Yi</td><td>6B</td><td>4–5 GB</td><td>8 GB</td></tr>
+<tr><td style="text-align:left">Yi</td><td>13B</td><td>8–10 GB</td><td>16 GB</td></tr>
+<tr><td style="text-align:left">DeepSeek</td><td>7B</td><td>6 GB</td><td>12 GB</td></tr>
+<tr><td style="text-align:left">DeepSeek</td><td>14B</td><td>10–12 GB</td><td>16 GB</td></tr>
+<tr><td style="text-align:left">Gemma</td><td>7B</td><td>6–8 GB</td><td>12 GB</td></tr>
+<tr><td style="text-align:left">Phi-3</td><td>7B</td><td>6–8 GB</td><td>12 GB</td></tr>
+<tr><td style="text-align:left">ChatGLM3</td><td>6B</td><td>4–5 GB</td><td>8 GB</td></tr>
+<tr><td style="text-align:left">Baichuan2</td><td>7B</td><td>6 GB</td><td>12 GB</td></tr>
+<tr><td style="text-align:left">Baichuan2</td><td>13B</td><td>8–10 GB</td><td>16 GB</td></tr>
+<tr><td style="text-align:left">InternLM2</td><td>7B</td><td>6 GB</td><td>12 GB</td></tr>
+<tr><td style="text-align:left">InternLM2</td><td>20B</td><td>14–16 GB</td><td>24 GB</td></tr>
+</tbody>
+</table>
 
 ### Installation
 
