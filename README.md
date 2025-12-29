@@ -8,6 +8,17 @@
 
 This project implements E-RECAP (Embodied REplanning with Cost-Aware Pruning), a system-level, drop-in method for accelerating replanning in embodied agents by cost-aware pruning of planner context. E-RECAP operates as a Planner optimization module that can be seamlessly integrated into embodied AI systems without modifying task definitions, environments, or control policies.
 
+## Overview
+
+In embodied AI systems, agents frequently need to replan due to partial observability, dynamic environments, and execution uncertainties. When using LLM/VLM as high-level planners, each replanning cycle requires processing long contexts that accumulate over time, making replanning a major computational bottleneck—especially in multi-agent settings where context grows with the number of agents.
+
+E-RECAP addresses this by:
+- **Learning task-agnostic token importance** from large-scale instruction-following data ([Dolly-15k](https://huggingface.co/datasets/databricks/databricks-dolly-15k), [Alpaca](https://github.com/tatsu-lab/stanford_alpaca), [Self-Instruct](https://arxiv.org/abs/2212.10560))
+- **Cost-aware dynamic pruning** of planner context during replanning, reducing computation while preserving decision quality
+- **System-level integration** that works with any Transformer-based planner without modifying perception or control modules
+
+E-RECAP is evaluated in both single-agent and cooperative multi-agent settings, with embodied evaluation planned on [Habitat-Lab](https://github.com/facebookresearch/habitat-lab) ([PointNav](https://aihabitat.org/docs/habitat-lab/habitat_task.html#pointnav)/[ObjectNav](https://aihabitat.org/docs/habitat-lab/habitat_task.html#objectnav) tasks).
+
 ## Project Structure
 
 ```
@@ -138,7 +149,13 @@ pip install torch --index-url https://download.pytorch.org/whl/cu121
    - Used for training pruning module in Stage 2
 
 4. **Training data** → `data/raw/dolly15k/` or `dolly15k/`
-   - Dolly-15k dataset is used for Stage 1 (saliency computation) and Stage 2 (pruning module training)
+   - **Primary training data**: 
+     - [Dolly-15k](https://www.databricks.com/blog/2023/04/12/dolly-first-open-commercially-viable-instruction-tuned-llm) ([HuggingFace](https://huggingface.co/datasets/databricks/databricks-dolly-15k)), [Alpaca](https://github.com/tatsu-lab/stanford_alpaca) ([HuggingFace](https://huggingface.co/datasets/tatsu-lab/alpaca)), processed [Self-Instruct](https://arxiv.org/abs/2212.10560) ([HuggingFace](https://huggingface.co/datasets/self_instruct))
+     - Used for Stage 1 (saliency computation) and Stage 2 (pruning module training)
+     - Learn task-agnostic token importance priors across diverse reasoning patterns
+   - **Optional auxiliary data**: Textualized embodied samples from [ALFRED](https://arxiv.org/abs/1912.01734), [TEACh](https://arxiv.org/abs/2110.00534), [BabyAI](https://arxiv.org/abs/1810.08272), [BEHAVIOR-1K](https://arxiv.org/abs/2203.04051), [ProcTHOR](https://arxiv.org/abs/2206.06994)
+     - Used at lower frequency to refine replanning-aware saliency patterns
+     - Not required for E-RECAP to work, but helps improve replanning sensitivity
    - Can use any HuggingFace-compatible dataset
 
 5. **Results** → `results/`
@@ -333,11 +350,12 @@ The `scripts/` directory contains helper scripts for common tasks:
 
 ## Key Features
 
-- **Cost-Aware Pruning**: Remove redundant tokens during prefill to reduce computation
-- **Layer-wise Pruning**: Progressive pruning across Transformer layers
-- **Multi-GPU Support**: Automatic distributed inference for long sequences
-- **Learnable Pruning Module**: Lightweight MLP for cost-aware token pruning
-- **Cooperative Multi-Agent Planning**: Sequential multi-agent replanning with E-RECAP context pruning (see [Multi-Agent Planning](#multi-agent-planning))
+- **Cost-Aware Pruning**: Remove redundant tokens during prefill to reduce computation (up to 71% token reduction, 2-40× speedup depending on sequence length and GPU configuration)
+- **Layer-wise Pruning**: Progressive pruning across Transformer layers (8 pruning points: layers 4, 7, 10, 13, 16, 19, 22, 25)
+- **Multi-GPU Support**: Automatic distributed inference for long sequences (tested up to 32K tokens, achieving 20.7× average speedup on 8× RTX 5880)
+- **Learnable Pruning Module**: Lightweight MLP (hidden_size → hidden_size/4 → 1) trained on instruction-following data
+- **Cooperative Multi-Agent Planning**: Sequential multi-agent replanning with E-RECAP context pruning (K=2-8 agents, see [Multi-Agent Planning](#multi-agent-planning))
+- **Quality Preservation**: Maintains task success rate while significantly reducing computation (typically <2% quality degradation at keep_ratio=0.7)
 
 <!--
 ## Results
@@ -389,6 +407,8 @@ The `scripts/` directory contains helper scripts for common tasks:
 
 E-RECAP supports cooperative multi-agent planning where multiple agents operate sequentially, each receiving a shared planning context pruned by E-RECAP's cost-aware token pruning module. This setting captures multi-agent replanning characteristics—context growth, information aggregation, and iterative plan revision—while maintaining strict control over experimental variables.
 
+**Note:** This is a planning-level multi-agent setting (not multi-robot physical control). Multiple planning agents contribute information sequentially to a shared context, which is pruned by E-RECAP before each agent invocation. This design systematically amplifies context growth to evaluate E-RECAP's scalability (K=2-8 agents).
+
 **Quick example (uses default task, no input required):**
 ```bash
 # Run with default task description
@@ -434,6 +454,18 @@ python3 src/multi_agent/compare_baseline_erecap.py \
 ```
 
 For detailed implementation, see `paper/part3_sum.md`.
+
+## Embodied Evaluation (Planned)
+
+E-RECAP is designed for embodied AI replanning scenarios. Planned evaluation includes:
+
+- **Platform**: [Habitat-Lab](https://github.com/facebookresearch/habitat-lab) ([PointNav](https://aihabitat.org/docs/habitat-lab/habitat_task.html#pointnav), [ObjectNav](https://aihabitat.org/docs/habitat-lab/habitat_task.html#objectnav) tasks)
+- **Scenes**: [Matterport3D (MP3D)](https://niessner.github.io/Matterport/), [Gibson](http://gibsonenv.stanford.edu/), [Replica](https://github.com/facebookresearch/Replica-Dataset)
+- **Setting**: Cooperative multi-agent replanning (K=2-8 agents)
+- **Metrics**: Success Rate, SPL, token cost, latency, replanning frequency
+- **Baselines**: No-Pruning, Random-Pruning, Heuristic-Pruning
+
+The Habitat integration will evaluate E-RECAP's effectiveness in real embodied replanning scenarios where context naturally grows through plan-execute-observe-replan cycles. See `paper/habitat_integration_design.md` for detailed design.
 
 ## Model Configuration
 
