@@ -8,8 +8,8 @@ from datasets import load_from_disk
 from torch.utils.data import DataLoader
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
-MODEL_PATH = "/data/private/user2/workspace/E-RECAP/checkpoints/qwen2-7b-instruct"
-DATA_PATH = "/data/private/user2/workspace/E-RECAP/data/raw/dolly15k"
+MODEL_PATH = "checkpoints/qwen2-7b-instruct"
+DATA_PATH = "data/raw/dolly15k"
 
 MAX_LEN = 512
 BATCH_SIZE = 1

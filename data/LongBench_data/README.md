@@ -53,9 +53,6 @@ To use these datasets with the E-RECAP evaluation scripts:
 ```bash
 # LongBench evaluation
 bash scripts/run_longbench_setup.sh data/LongBench_data/narrativeqa.json
-
-# LM-Eval harness evaluation
-bash scripts/run_lmeval_setup.sh data/LongBench_data/narrativeqa.json baseline
 ```
 
 ## Download Script

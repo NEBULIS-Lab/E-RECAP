@@ -13,3 +13,8 @@ numpy>=1.21.0
 # advanced inference modes
 # accelerate>=0.20.0  # For inference_erecap_accelerate_tp.py
 # deepspeed>=0.13.0    # For inference_erecap_deepspeed.py
+
+# optional: multi-agent framework support (for framework_wrapper.py)
+# crewai>=0.28.8  # Optional: For CrewAI agent orchestration
+# langchain>=0.1.17  # Optional: For LangChain integration
+# langchain-community>=0.1.17  # Optional: For LangChain community features

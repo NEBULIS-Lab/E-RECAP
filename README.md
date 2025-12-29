@@ -42,7 +42,16 @@ E-RECAP/
     ├── erecap_model.py            # Core model with pruning logic
     ├── inference_erecap.py        # Single GPU inference
     ├── inference_erecap_multigpu.py  # Multi-GPU inference
-    └── multigpu_test.py          # Multi-GPU memory profiling
+    ├── multigpu_test.py          # Multi-GPU memory profiling
+    └── multi_agent/              # Cooperative multi-agent planning
+        ├── cooperative_planner.py    # Main planner with E-RECAP integration
+        ├── context_buffer.py         # Shared planning context buffer
+        ├── structured_output.py      # Structured agent output parser
+        ├── agent_config.py           # Agent configuration definitions
+        ├── task_definitions.py       # Task step definitions
+        ├── framework_wrapper.py      # Optional CrewAI/LangChain support
+        └── framework_optional/       # Optional framework files (not in Git)
+            └── agents_config.json    # Agent config for CrewAI (if used)
 ```
 
 ## Quick Start
@@ -236,6 +245,26 @@ bash scripts/run_inference_multigpu.sh profile
 bash scripts/run_inference_multigpu.sh generate "Your prompt here"
 ```
 
+**Cooperative Multi-Agent Planning** (with E-RECAP context pruning):
+```bash
+# Run E-RECAP version (default: 15-step iterative replanning task)
+bash scripts/run_cooperative_replanning.sh --keep_ratio 0.7 --save_results
+
+# Run 10 times for longer evaluation (ensures >5 minutes runtime)
+bash scripts/run_cooperative_replanning.sh --keep_ratio 0.7 --num_runs 10 --save_results
+
+# Run baseline (no pruning) for comparison
+bash scripts/run_cooperative_replanning.sh --baseline --save_results
+
+# Run baseline 10 times
+bash scripts/run_cooperative_replanning.sh --baseline --num_runs 10 --save_results
+
+# Compare results (for 10 runs)
+python3 src/multi_agent/compare_baseline_erecap.py \
+    --baseline_file results/cooperative_planning_iterative_replanning_baseline_10runs.json \
+    --erecap_file results/cooperative_planning_iterative_replanning_0.7_10runs.json
+```
+
 **Run single configuration directly:**
 ```bash
 cd src
@@ -289,12 +318,6 @@ The `scripts/` directory contains helper scripts for common tasks:
 
 #### Evaluation Scripts (Optional)
 
-- **`run_lmeval.sh`**: Run lm-eval-harness evaluation
-  - `bash scripts/run_lmeval.sh [baseline|erecap]` - Default: baseline
-
-- **`run_lmeval_setup.sh`**: Setup lm-eval evaluation framework
-  - `bash scripts/run_lmeval_setup.sh [task_config] [model_type] [output_dir]`
-
 - **`run_longbench.sh`**: Run LongBench evaluation
   - `bash scripts/run_longbench.sh [task] [type] [num_samples]` - Default: hotpotqa, baseline, 30
 
@@ -304,12 +327,17 @@ The `scripts/` directory contains helper scripts for common tasks:
 - **`run_ablation.sh`**: Run ablation study
   - `bash scripts/run_ablation.sh` - Generates ablation results
 
+- **`run_cooperative_replanning.sh`**: Cooperative multi-agent planning with E-RECAP
+  - `bash scripts/run_cooperative_replanning.sh --keep_ratio 0.7 --save_results` - Run with default task
+  - `bash scripts/run_cooperative_replanning.sh --task_type embodied` - Run embodied replanning scenario
+
 ## Key Features
 
 - **Cost-Aware Pruning**: Remove redundant tokens during prefill to reduce computation
 - **Layer-wise Pruning**: Progressive pruning across Transformer layers
 - **Multi-GPU Support**: Automatic distributed inference for long sequences
 - **Learnable Pruning Module**: Lightweight MLP for cost-aware token pruning
+- **Cooperative Multi-Agent Planning**: Sequential multi-agent replanning with E-RECAP context pruning (see [Multi-Agent Planning](#multi-agent-planning))
 
 <!--
 ## Results
@@ -356,6 +384,56 @@ The `scripts/` directory contains helper scripts for common tasks:
 
 **Hardware:** NVIDIA RTX 5880 Ada (48GB), single GPU
 -->
+
+## Multi-Agent Planning
+
+E-RECAP supports cooperative multi-agent planning where multiple agents operate sequentially, each receiving a shared planning context pruned by E-RECAP's cost-aware token pruning module. This setting captures multi-agent replanning characteristics—context growth, information aggregation, and iterative plan revision—while maintaining strict control over experimental variables.
+
+**Quick example (uses default task, no input required):**
+```bash
+# Run with default task description
+bash scripts/run_cooperative_replanning.sh --keep_ratio 0.7 --save_results
+
+# Or Python (default task included)
+python3 src/multi_agent/run_cooperative_test.py --keep_ratio 0.7 --save_results
+```
+
+**Key features:**
+- **Shared Context Buffer**: Accumulates task descriptions, plans, constraints, and agent contributions
+- **E-RECAP Pruning**: Context pruned before each agent invocation to control growth
+- **Structured Output**: Agent outputs in structured format (observations, conflicts, plan patches)
+- **Framework Compatible**: Optional CrewAI/LangChain support (see below)
+
+**Optional Framework Support (CrewAI/LangChain):**
+
+To enable CrewAI or LangChain integration, install the optional dependencies:
+```bash
+pip install crewai>=0.28.8 langchain>=0.1.17 langchain-community>=0.1.17
+```
+
+Then copy the agent configuration file to the framework_optional directory (if you have one):
+```bash
+# Create framework_optional directory if it doesn't exist
+mkdir -p src/multi_agent/framework_optional
+
+# Copy your agents_config.json file to the framework_optional directory
+# The file should follow the format expected by CrewAI/LangChain
+```
+
+Note: Framework support is optional. The default implementation works without CrewAI/LangChain. When enabled, frameworks are used only for scheduling/role-assignment, while prompt construction, context buffering, and pruning remain under E-RECAP control. See `src/multi_agent/framework_wrapper.py` for implementation details.
+
+**Baseline comparison:**
+```bash
+# Run baseline (no pruning) for comparison
+bash scripts/run_cooperative_replanning.sh --baseline --save_results
+
+# Compare baseline vs E-RECAP results
+python3 src/multi_agent/compare_baseline_erecap.py \
+    --baseline_file results/cooperative_planning_cooperative_baseline.json \
+    --erecap_file results/cooperative_planning_cooperative_0.7.json
+```
+
+For detailed implementation, see `paper/part3_sum.md`.
 
 ## Model Configuration
 

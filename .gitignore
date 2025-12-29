@@ -306,3 +306,6 @@ IMPLEMENTATION_SUMMARY.md
 
 # Paper directory
 paper/
+
+# Optional framework files (CrewAI/LangChain support)
+src/multi_agent/framework_optional/

@@ -459,6 +459,74 @@ def prefill_with_pruning(
 
 
 # ============================
+# Context pruning only (for multi-agent cooperative planning)
+# ============================
+def prune_context_only(
+    model: AutoModelForCausalLM,
+    tokenizer: AutoTokenizer,
+    pruning_modules: nn.ModuleDict,
+    input_text: str,
+    keep_ratio: float = None,
+    prune_layers: list = None,
+    min_head_tokens: int = None,
+    min_tail_ratio: float = None,
+) -> Tuple[str, Dict]:
+    """
+    Prune context text using E-RECAP token pruning, returning pruned text.
+    
+    This function is designed for cooperative multi-agent planning where the
+    shared context buffer needs to be pruned before each agent invocation.
+    
+    Args:
+        model: Language model instance.
+        tokenizer: Tokenizer instance.
+        pruning_modules: Dictionary of pruning modules.
+        input_text: Input context text to be pruned.
+        keep_ratio: Fraction of tokens to keep per layer. If None, uses KEEP_RATIO.
+        prune_layers: List of layer indices to prune. If None, uses PRUNE_LAYERS.
+        min_head_tokens: Minimum tokens to keep at head. If None, uses MIN_HEAD_TOKENS.
+        min_tail_ratio: Ratio of tokens to keep at tail. If None, uses MIN_TAIL_RATIO.
+    
+    Returns:
+        pruned_text: Pruned context text.
+        pruning_stats: Dictionary with pruning statistics.
+    """
+    if keep_ratio is None:
+        keep_ratio = KEEP_RATIO
+    if prune_layers is None:
+        prune_layers = PRUNE_LAYERS
+    if min_head_tokens is None:
+        min_head_tokens = MIN_HEAD_TOKENS
+    if min_tail_ratio is None:
+        min_tail_ratio = MIN_TAIL_RATIO
+    
+    # Tokenize input text
+    inputs = tokenizer(input_text, return_tensors="pt", padding=True, truncation=False)
+    input_ids = inputs["input_ids"].to(model.device)
+    attention_mask = inputs.get("attention_mask", None)
+    if attention_mask is not None:
+        attention_mask = attention_mask.to(model.device)
+    
+    # Apply E-RECAP pruning and get pruned input_ids
+    logits, pruning_stats, pruned_input_ids = prefill_with_pruning(
+        model=model,
+        input_ids=input_ids,
+        attention_mask=attention_mask,
+        pruning_modules=pruning_modules,
+        keep_ratio=keep_ratio,
+        prune_layers=prune_layers,
+        min_head_tokens=min_head_tokens,
+        min_tail_ratio=min_tail_ratio,
+        return_pruned_input_ids=True,  # Return pruned input_ids
+    )
+    
+    # Decode pruned input_ids back to text
+    pruned_text = tokenizer.decode(pruned_input_ids[0], skip_special_tokens=True)
+    
+    return pruned_text, pruning_stats
+
+
+# ============================
 # Baseline prefill (no pruning)
 # ============================
 def baseline_prefill(
