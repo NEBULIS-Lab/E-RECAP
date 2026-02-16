@@ -90,7 +90,12 @@ class TokenPruningModule(nn.Module):
 # ============================
 # Load model + pruning modules
 # ============================
-def load_model_and_pruners(prune_layers=None):
+def load_model_and_pruners(
+    prune_layers=None,
+    *,
+    model_path: Optional[str] = None,
+    pruning_ckpt: Optional[str] = None,
+):
     """
     Load model and pruning modules.
     
@@ -100,21 +105,33 @@ def load_model_and_pruners(prune_layers=None):
     Returns:
         model, tokenizer, pruning_modules
     """
-    if prune_layers is None:
-        prune_layers = PRUNE_LAYERS
-    
-    # Load Qwen2 model in float16 on GPU
+    resolved_model_path = model_path if model_path is not None else MODEL_PATH
+    resolved_pruning_ckpt = pruning_ckpt if pruning_ckpt is not None else PRUNING_CKPT
+
+    # Load model in float16 on GPU
     model = AutoModelForCausalLM.from_pretrained(
-        MODEL_PATH,
+        resolved_model_path,
         torch_dtype=torch.float16,
         device_map=None,
         local_files_only=True,
     ).to(device)
 
     tokenizer = AutoTokenizer.from_pretrained(
-        MODEL_PATH,
+        resolved_model_path,
         local_files_only=True,
     )
+
+    # Resolve pruning layers after loading the model so we can match the paper's schedule
+    # to the actual backbone depth:
+    # - 28-layer: [4,7,10,13,16,19,22,25]
+    # - 32-layer: [4,7,10,13,16,19,22,25,28]
+    # - Pattern: prune_layers = list(range(4, n_layers - 2, 3))
+    if prune_layers is None:
+        try:
+            n_layers = int(getattr(model.config, "num_hidden_layers"))
+            prune_layers = list(range(4, max(0, n_layers - 2), 3))
+        except Exception:
+            prune_layers = list(PRUNE_LAYERS)
 
     hidden_size = model.config.hidden_size
 
@@ -124,7 +141,19 @@ def load_model_and_pruners(prune_layers=None):
     )
 
     # Load trained pruning weights from Stage2
-    state_dict = torch.load(PRUNING_CKPT, map_location="cpu")
+    state_dict = torch.load(resolved_pruning_ckpt, map_location="cpu")
+    try:
+        # If `prune_layers` was inferred from model depth but the checkpoint was trained
+        # with a different layer set, fall back to the checkpoint's layer keys.
+        ckpt_layers = sorted(
+            {int(k.split(".", 1)[0]) for k in state_dict.keys() if str(k).split(".", 1)[0].isdigit()}
+        )
+        if ckpt_layers and set(ckpt_layers) != set(prune_layers):
+            # Rebuild modules to match checkpoint exactly (best-effort reproducibility).
+            prune_layers = list(ckpt_layers)
+            pruning_modules = nn.ModuleDict({str(i): TokenPruningModule(hidden_size) for i in prune_layers})
+    except Exception:
+        pass
     pruning_modules.load_state_dict(state_dict)
 
     pruning_modules.to(device)
@@ -147,10 +176,12 @@ def apply_token_pruning(
     min_tail_ratio: float = None,
     layer_idx: int = -1,
     debug_log: bool = False,
+    token_select_strategy: str = "erecap",
+    random_seed: Optional[int] = None,
 ) -> Tuple[torch.Tensor, torch.Tensor, Dict]:
     """
     hidden_states: [1, seq_len, hidden]
-    pruning_module: TokenPruningModule
+    pruning_module: TokenPruningModule (required only when token_select_strategy="erecap")
     keep_ratio: fraction of tokens to keep (applied to CURRENT sequence length, NOT cumulative)
     min_head_tokens: minimum tokens to keep at head (default: MIN_HEAD_TOKENS)
     min_tail_ratio: ratio of tokens to keep at tail (default: MIN_TAIL_RATIO, as in paper: 10%)
@@ -165,6 +196,7 @@ def apply_token_pruning(
     import logging
     import json
     import os
+    import random
     from datetime import datetime
     
     if min_head_tokens is None:
@@ -180,30 +212,42 @@ def apply_token_pruning(
     if seq_len == 0:
         raise ValueError(f"apply_token_pruning: input sequence length is 0!")
 
-    # Ensure pruning module is on the same device as hidden_states
-    # This ensures device compatibility (pruning modules start on CPU, move to GPU when needed)
-    pruning_module = pruning_module.to(device=device, dtype=dtype)
-
     # [seq_len, hidden]
     hs_flat = hidden_states.squeeze(0)
 
-    # importance scores: [seq_len]
-    scores = pruning_module(hs_flat)
-    scores = scores.squeeze(-1) if scores.dim() > 1 else scores
-    
-    # CRITICAL FIX D: Validate saliency scores before sorting
-    scores_abs_sum = scores.abs().sum().item()
-    scores_min = scores.min().item()
-    scores_max = scores.max().item()
-    
-    if scores_abs_sum == 0 or (scores_max - scores_min) < 1e-8:
-        # All scores are zero or identical - add small random noise to break ties
-        if debug_log:
-            print(f"[WARNING] Layer {layer_idx}: All saliency scores are zero/identical, adding noise")
-        scores = scores + 1e-6 * torch.randn_like(scores)
-        scores_abs_sum = scores.abs().sum().item()
-        scores_min = scores.min().item()
-        scores_max = scores.max().item()
+    token_select_strategy = str(token_select_strategy).strip().lower()
+    if token_select_strategy not in {"erecap", "random", "recency"}:
+        raise ValueError(
+            f"apply_token_pruning: invalid token_select_strategy={token_select_strategy!r} "
+            "(expected 'erecap'|'random'|'recency')"
+        )
+
+    scores = None
+    scores_abs_sum = None
+    scores_min = None
+    scores_max = None
+    if token_select_strategy == "erecap":
+        # Ensure pruning module is on the same device as hidden_states
+        # This ensures device compatibility (pruning modules start on CPU, move to GPU when needed)
+        pruning_module = pruning_module.to(device=device, dtype=dtype)
+
+        # importance scores: [seq_len]
+        scores = pruning_module(hs_flat)
+        scores = scores.squeeze(-1) if scores.dim() > 1 else scores
+
+        # CRITICAL FIX D: Validate saliency scores before sorting
+        scores_abs_sum = float(scores.abs().sum().item())
+        scores_min = float(scores.min().item())
+        scores_max = float(scores.max().item())
+
+        if scores_abs_sum == 0 or (scores_max - scores_min) < 1e-8:
+            # All scores are zero or identical - add small random noise to break ties
+            if debug_log:
+                print(f"[WARNING] Layer {layer_idx}: All saliency scores are zero/identical, adding noise")
+            scores = scores + 1e-6 * torch.randn_like(scores)
+            scores_abs_sum = float(scores.abs().sum().item())
+            scores_min = float(scores.min().item())
+            scores_max = float(scores.max().item())
 
     # Always keep the first min_head_tokens and last min_tail_ratio * seq_len tokens (as in paper)
     base_keep = set(range(min(min_head_tokens, seq_len)))
@@ -227,17 +271,38 @@ def apply_token_pruning(
     # How many tokens to keep in total
     target_keep = keep_k
 
-    # Sort tokens by score (descending)
-    _, sorted_idx = torch.topk(scores, k=seq_len)
+    # Select tokens according to strategy, under the SAME token-count budget.
+    selected = list(sorted(base_keep))
+    remaining_need = max(0, int(target_keep) - len(selected))
 
-    # First add mandatory tokens, then fill up with highest scores
-    selected = []
-    for idx in sorted_idx.tolist():
-        if idx in base_keep:
-            selected.append(idx)
-    for idx in sorted_idx.tolist():
-        if idx not in base_keep and len(selected) < target_keep:
-            selected.append(idx)
+    if remaining_need > 0:
+        remaining_indices = [i for i in range(seq_len) if i not in base_keep]
+        if token_select_strategy == "erecap":
+            assert scores is not None
+            # Sort tokens by score (descending)
+            _, sorted_idx = torch.topk(scores, k=seq_len)
+            for idx in sorted_idx.tolist():
+                if idx in base_keep:
+                    continue
+                selected.append(idx)
+                if len(selected) >= target_keep:
+                    break
+        elif token_select_strategy == "recency":
+            # Recency baseline: keep most recent tokens (highest indices) first.
+            for idx in reversed(remaining_indices):
+                selected.append(idx)
+                if len(selected) >= target_keep:
+                    break
+        else:
+            # Random baseline: uniform sample from remaining tokens.
+            seed_base = int(random_seed) if random_seed is not None else 0
+            layer_seed = seed_base + int(layer_idx + 1) * 1000003
+            rng = random.Random(layer_seed)
+            if remaining_need >= len(remaining_indices):
+                picked = remaining_indices
+            else:
+                picked = rng.sample(remaining_indices, k=remaining_need)
+            selected.extend(picked)
 
     # Final safeguard: ensure we have at least 1 token
     if len(selected) == 0:
@@ -266,10 +331,16 @@ def apply_token_pruning(
         "pruning_ratio": pruning_ratio,
         "original_length": seq_len,
         "keep_k": keep_k,
-        "scores_min": scores_min,
-        "scores_max": scores_max,
-        "scores_abs_sum": scores_abs_sum,
+        "token_select_strategy": token_select_strategy,
     }
+    if token_select_strategy == "erecap":
+        stats["scores_min"] = scores_min
+        stats["scores_max"] = scores_max
+        stats["scores_abs_sum"] = scores_abs_sum
+    if token_select_strategy == "random":
+        seed_base = int(random_seed) if random_seed is not None else 0
+        stats["random_seed_base"] = seed_base
+        stats["random_seed_layer"] = seed_base + int(layer_idx + 1) * 1000003
     
     # CRITICAL FIX E: Debug logging
     if debug_log:
@@ -281,15 +352,32 @@ def apply_token_pruning(
             "tokens_kept": tokens_kept,
             "tokens_pruned": tokens_pruned,
             "pruning_ratio": pruning_ratio,
-            "scores_min": scores_min,
-            "scores_max": scores_max,
-            "scores_abs_sum": scores_abs_sum,
-            "fallback_applied": scores_abs_sum == 0 or (scores_max - scores_min) < 1e-8,
+            "token_select_strategy": token_select_strategy,
         }
+        if token_select_strategy == "erecap":
+            log_entry.update(
+                {
+                    "scores_min": scores_min,
+                    "scores_max": scores_max,
+                    "scores_abs_sum": scores_abs_sum,
+                    "fallback_applied": bool(scores_abs_sum == 0 or (scores_max - scores_min) < 1e-8),
+                }
+            )
+        if token_select_strategy == "random":
+            log_entry.update(
+                {
+                    "random_seed_base": stats.get("random_seed_base"),
+                    "random_seed_layer": stats.get("random_seed_layer"),
+                }
+            )
         os.makedirs("debug", exist_ok=True)
         with open("debug/prune_log.jsonl", "a") as f:
             f.write(json.dumps(log_entry) + "\n")
-        print(f"[PRUNE] Layer {layer_idx}: seq_len={seq_len}, keep_k={keep_k}, kept={tokens_kept}, pruned={tokens_pruned}, ratio={pruning_ratio:.2%}")
+        print(
+            f"[PRUNE] Layer {layer_idx}: seq_len={seq_len}, keep_k={keep_k}, "
+            f"kept={tokens_kept}, pruned={tokens_pruned}, ratio={pruning_ratio:.2%}, "
+            f"strategy={token_select_strategy}"
+        )
 
     return pruned_hidden, index_tensor, stats
 
@@ -307,6 +395,10 @@ def prefill_with_pruning(
     min_head_tokens: int = None,
     min_tail_ratio: float = None,
     return_pruned_input_ids: bool = False,
+    logits_mode: str = "full",  # "full" or "last"
+    debug_log: bool = False,
+    token_select_strategy: str = "erecap",
+    random_seed: Optional[int] = None,
 ) -> Union[Tuple[torch.Tensor, Dict], Tuple[torch.Tensor, Dict, torch.Tensor]]:
     """
     Manual forward over Transformer layers with token pruning applied
@@ -321,6 +413,8 @@ def prefill_with_pruning(
     
     Args:
         return_pruned_input_ids: If True, also return pruned input_ids for decode phase
+        logits_mode: "full" to compute logits for all positions, "last" to compute only the
+            last-position logits (saves memory for long sequences).
     
     Returns:
         logits: Model output logits
@@ -343,8 +437,11 @@ def prefill_with_pruning(
         "total_pruning_steps": 0,
         "total_tokens_pruned": 0,
         "final_length": original_length,
-        "layer_stats": []
+        "layer_stats": [],
+        "token_select_strategy": str(token_select_strategy).strip().lower(),
     }
+    if str(token_select_strategy).strip().lower() == "random":
+        pruning_stats["random_seed_base"] = int(random_seed) if random_seed is not None else 0
     
     # Track cumulative indices to reconstruct pruned input_ids
     # Start with all indices: [0, 1, 2, ..., seq_len-1]
@@ -401,7 +498,9 @@ def prefill_with_pruning(
                 min_head_tokens,
                 min_tail_ratio,
                 layer_idx=layer_idx,
-                debug_log=True,  # Enable debug logging
+                debug_log=debug_log,
+                token_select_strategy=token_select_strategy,
+                random_seed=random_seed,
             )
             
             # CRITICAL: Verify pruning didn't produce zero-length output
@@ -436,7 +535,12 @@ def prefill_with_pruning(
 
     # Final RMSNorm + LM head to get logits
     hidden_states = model.model.norm(hidden_states)
-    logits = model.lm_head(hidden_states)
+    if logits_mode not in {"full", "last"}:
+        raise ValueError(f"prefill_with_pruning: invalid logits_mode={logits_mode!r} (expected 'full' or 'last')")
+    if logits_mode == "last":
+        logits = model.lm_head(hidden_states[:, -1:, :])
+    else:
+        logits = model.lm_head(hidden_states)
     
     # CRITICAL: Verify logits shape
     if logits.size(1) == 0:
@@ -470,6 +574,8 @@ def prune_context_only(
     prune_layers: list = None,
     min_head_tokens: int = None,
     min_tail_ratio: float = None,
+    token_select_strategy: str = "erecap",
+    random_seed: Optional[int] = None,
 ) -> Tuple[str, Dict]:
     """
     Prune context text using E-RECAP token pruning, returning pruned text.
@@ -503,6 +609,7 @@ def prune_context_only(
     # Tokenize input text
     inputs = tokenizer(input_text, return_tensors="pt", padding=True, truncation=False)
     input_ids = inputs["input_ids"].to(model.device)
+    input_tokens = int(input_ids.size(1))
     attention_mask = inputs.get("attention_mask", None)
     if attention_mask is not None:
         attention_mask = attention_mask.to(model.device)
@@ -518,10 +625,17 @@ def prune_context_only(
         min_head_tokens=min_head_tokens,
         min_tail_ratio=min_tail_ratio,
         return_pruned_input_ids=True,  # Return pruned input_ids
+        token_select_strategy=token_select_strategy,
+        random_seed=random_seed,
     )
     
     # Decode pruned input_ids back to text
     pruned_text = tokenizer.decode(pruned_input_ids[0], skip_special_tokens=True)
+
+    # Token accounting for downstream integrations (e.g., Habitat runner).
+    pruning_stats = dict(pruning_stats or {})
+    pruning_stats["input_tokens"] = input_tokens
+    pruning_stats["output_tokens"] = int(pruned_input_ids.size(1))
     
     return pruned_text, pruning_stats
 
@@ -609,7 +723,15 @@ def get_hardware_info():
     return info
 
 
-def profile_lengths(lengths, config_name: str = "keep07", save_json: bool = True, benchmark_mode: str = "prefill"):
+def profile_lengths(
+    lengths,
+    config_name: str = "keep07",
+    save_json: bool = True,
+    benchmark_mode: str = "prefill",
+    *,
+    model_path: Optional[str] = None,
+    pruning_ckpt: Optional[str] = None,
+):
     """
     Profile baseline vs E-RECAP for given sequence lengths.
     
@@ -633,7 +755,11 @@ def profile_lengths(lengths, config_name: str = "keep07", save_json: bool = True
     print(f"  Cumulative keep ratio: {config['cumulative_keep_ratio']:.4f}")
     
     # Load model with selected configuration
-    model, tokenizer, pruners = load_model_and_pruners(prune_layers=config["prune_layers"])
+    model, tokenizer, pruners = load_model_and_pruners(
+        prune_layers=config["prune_layers"],
+        model_path=model_path,
+        pruning_ckpt=pruning_ckpt,
+    )
     model.eval()
 
     print("Profiling lengths:", lengths)
@@ -642,7 +768,7 @@ def profile_lengths(lengths, config_name: str = "keep07", save_json: bool = True
     results_data = {
         "metadata": {
             "config_name": config_name,
-            "model": os.path.basename(MODEL_PATH),
+            "model": os.path.basename(model_path if model_path is not None else MODEL_PATH),
             "hardware": get_hardware_info(),
             "pruning_config": {
                 "prune_layers": config["prune_layers"],
@@ -971,6 +1097,18 @@ def parse_args():
         default="prefill",
         help="Benchmark mode: 'prefill' for prefill-only, 'end2end' for full end-to-end (prefill + decode)",
     )
+    parser.add_argument(
+        "--model_path",
+        type=str,
+        default=None,
+        help="Optional local HF model directory (overrides MODEL_PATH).",
+    )
+    parser.add_argument(
+        "--pruning_ckpt",
+        type=str,
+        default=None,
+        help="Optional pruning checkpoint path (overrides PRUNING_CKPT).",
+    )
     return parser.parse_args()
 
 
@@ -979,13 +1117,15 @@ def main():
 
     if args.mode == "profile":
         profile_lengths(
-            args.lengths, 
+            args.lengths,
             config_name=args.config,
             benchmark_mode=args.benchmark_mode,
+            model_path=args.model_path,
+            pruning_ckpt=args.pruning_ckpt,
         )
 
     elif args.mode == "generate":
-        model, tokenizer, _ = load_model_and_pruners()
+        model, tokenizer, _ = load_model_and_pruners(model_path=args.model_path, pruning_ckpt=args.pruning_ckpt)
         model.eval()
         text = generate_text(model, tokenizer, args.prompt)
         print(text)

@@ -4,7 +4,7 @@
 
 </div>
 
-![](https://img.shields.io/github/last-commit/NEBULIS-Lab/E-RECAP?color=green) ![](https://img.shields.io/badge/version-2.0-blue) <a href="https://nebulis-lab.com/"><img src="https://img.shields.io/badge/NEBULIS%20Lab-Website-6366F1.svg" alt="NEBULIS Lab"></a> <a href="#"><img src="https://img.shields.io/badge/arXiv-coming%20soon-009688.svg" alt="arXiv"></a> <a href="https://pytorch.org/get-started/locally/"><img alt="PyTorch" src="https://img.shields.io/badge/PyTorch-ee4c2c?logo=pytorch&logoColor=white"></a> <a href="https://huggingface.co/docs/transformers"><img alt="Transformers" src="https://img.shields.io/badge/Transformers-ffd21e?logo=huggingface&logoColor=black"></a> <a href="https://www.deepspeed.ai/"><img alt="DeepSpeed" src="https://img.shields.io/badge/DeepSpeed-0A66FF?logo=microsoft&logoColor=white"></a>
+![](https://img.shields.io/github/last-commit/NEBULIS-Lab/E-RECAP?color=green) ![](https://img.shields.io/badge/version-2.0-blue) <a href="https://nebulis-lab.com/"><img src="https://img.shields.io/badge/NEBULIS%20Lab-Website-6366F1.svg" alt="NEBULIS Lab"></a> <a href="#"><img src="https://img.shields.io/badge/arXiv-coming%20soon-009688.svg" alt="arXiv"></a> <a href="https://pytorch.org/get-started/locally/"><img alt="PyTorch" src="https://img.shields.io/badge/PyTorch-ee4c2c?logo=pytorch&logoColor=white"></a> <a href="https://huggingface.co/docs/transformers"><img alt="Transformers" src="https://img.shields.io/badge/Transformers-ffd21e?logo=huggingface&logoColor=black"></a> <a href="https://www.deepspeed.ai/"><img alt="DeepSpeed" src="https://img.shields.io/badge/DeepSpeed-0A66FF?logo=microsoft&logoColor=white"></a> <a href="https://huggingface.co/docs/accelerate"><img alt="Accelerate" src="https://img.shields.io/badge/Accelerate-ffd21e?logo=huggingface&logoColor=black"></a>
 
 This project implements E-RECAP (Embodied REplanning with Cost-Aware Pruning), a system-level, drop-in method for accelerating replanning in embodied agents by cost-aware pruning of planner context. E-RECAP operates as a Planner optimization module that can be seamlessly integrated into embodied AI systems without modifying task definitions, environments, or control policies.
 
@@ -44,6 +44,8 @@ E-RECAP/
 │   ├── run_stage2.sh        # Stage 2: Pruning module training
 │   ├── run_inference.sh     # Single GPU inference
 │   ├── run_inference_multigpu.sh  # Multi-GPU inference
+│   ├── check_pruning_baselines.py # Sanity-check Random/Recency baselines
+│   ├── tune_prune_layers.py  # Tune pruning-layer placement (paper heuristic)
 │   ├── check_full_env.sh    # Environment check
 │   └── install.sh           # Dependency installation
 │
@@ -172,11 +174,15 @@ pip install torch --index-url https://download.pytorch.org/whl/cu121
    - The model directory should contain `config.json`, model weights (`.safetensors` or `.bin`), and tokenizer files
    - Example: `checkpoints/qwen2-7b-instruct/`, `checkpoints/llama2-7b/`, etc.
 
-2. **Configure model path** in `src/inference_erecap.py`:
-   ```python
-   MODEL_PATH = "checkpoints/<your-model-name>"
-   ```
-   Replace `<your-model-name>` with your actual model directory name.
+2. **Configure model path**
+   - You can keep the default `MODEL_PATH` in code, or override it from CLI:
+     ```bash
+     python3 -u src/inference_erecap.py --mode profile --model_path checkpoints/<your-model-name>
+     ```
+   - If you want to use a different pruning checkpoint without editing code:
+     ```bash
+     python3 -u src/inference_erecap.py --mode generate --model_path checkpoints/<your-model-name> --pruning_ckpt checkpoints/pruning_module.pt
+     ```
 
 #### Pre-flight Check
 
@@ -315,9 +321,11 @@ The `scripts/` directory contains helper scripts for common tasks:
 
 - **`run_stage1.sh`**: Generate saliency baseline (optional)
   - `bash scripts/run_stage1.sh [num_samples]` - Default: 1000 samples
+  - Advanced (no code edits): `python -u src/stage1_saliency.py --model_path <LOCAL_MODEL_DIR> --data_path dolly15k --prune_layers 4 7 10 13 16 19 22 25`
 
 - **`run_stage2.sh`**: Train pruning module (required if missing)
   - `bash scripts/run_stage2.sh [learning_rate] [epochs]` - Default: 1e-4, 2 epochs
+  - Advanced (no overwrites): `python3 -u src/stage2_pruning.py --model_path <LOCAL_MODEL_DIR> --saliency_path checkpoints/saliency.pt --output_path checkpoints/pruning_module.pt --prune_layers 4 7 10 13 16 19 22 25`
 
 #### Utility Scripts
 
@@ -463,7 +471,7 @@ E-RECAP is designed for embodied AI replanning scenarios. Planned evaluation inc
 - **Scenes**: [Matterport3D (MP3D)](https://niessner.github.io/Matterport/), [Gibson](http://gibsonenv.stanford.edu/), [Replica](https://github.com/facebookresearch/Replica-Dataset)
 - **Setting**: Cooperative multi-agent replanning (K=2-8 agents)
 - **Metrics**: Success Rate, SPL, token cost, latency, replanning frequency
-- **Baselines**: No-Pruning, Random-Pruning, Heuristic-Pruning
+- **Baselines**: No-Pruning, Random-Pruning (token-count-matched), Heuristic-Pruning(recency) (token-count-matched)
 
 The Habitat integration will evaluate E-RECAP's effectiveness in real embodied replanning scenarios where context naturally grows through plan-execute-observe-replan cycles. See `paper/habitat_integration_design.md` for detailed design.
 
@@ -473,13 +481,12 @@ E-RECAP supports any HuggingFace-compatible Transformer model. To use a differen
 
 1. **Place model files** in `checkpoints/<your-model-name>/`
 
-2. **Update model path** in the following files:
-   - `src/inference_erecap.py`: Set `MODEL_PATH = "checkpoints/<your-model-name>"`
-   - `src/stage1_saliency.py`: Set `MODEL_PATH` (if running Stage 1)
-   - `src/stage2_pruning.py`: Set `MODEL_NAME = "checkpoints/<your-model-name>"` (if running Stage 2)
+2. **Point scripts to your model**
+   - Inference: pass `--model_path` (and optionally `--pruning_ckpt`) to `src/inference_erecap.py`
+   - Stage 1: pass `--model_path` / `--data_path` / `--prune_layers` to `src/stage1_saliency.py`
+   - Stage 2: pass `--model_path` / `--data_path` / `--saliency_path` / `--output_path` / `--prune_layers` to `src/stage2_pruning.py`
 
 3. **Train pruning module** (if switching to a model with different `hidden_size`):
    - The pruning module is model-specific and depends on the model's `hidden_size`
    - If your new model has the same `hidden_size`, you can reuse the existing `pruning_module.pt`
    - Otherwise, retrain by running Stage 2 with the new model
-

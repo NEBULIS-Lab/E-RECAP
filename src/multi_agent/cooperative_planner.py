@@ -8,7 +8,7 @@ pruned by E-RECAP's cost-aware token pruning module.
 
 import time
 import torch
-from typing import List, Dict, Optional, Tuple
+from typing import Any, List, Dict, Optional, Tuple
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
 from .context_buffer import SharedPlanningContextBuffer, AgentContribution
@@ -47,6 +47,7 @@ class CooperativeMultiAgentPlanner:
         keep_ratio: float = 0.7,
         prune_layers: Optional[List[int]] = None,
         max_new_tokens: int = 128,
+        min_new_tokens: int = 10,
         device: Optional[torch.device] = None,
     ):
         """
@@ -66,7 +67,8 @@ class CooperativeMultiAgentPlanner:
         self.pruning_modules = pruning_modules
         self.keep_ratio = keep_ratio
         self.prune_layers = prune_layers
-        self.max_new_tokens = max_new_tokens
+        self.max_new_tokens = int(max_new_tokens)
+        self.min_new_tokens = int(min_new_tokens)
         self.device = device or next(model.parameters()).device
         
         self.context_buffer = SharedPlanningContextBuffer()
@@ -81,7 +83,13 @@ class CooperativeMultiAgentPlanner:
         """Load agent configurations from file or use defaults."""
         self.agents = load_agent_configs(config_path)
     
-    def _prune_context(self, context_text: str, use_pruning: bool = True) -> Tuple[str, Dict]:
+    def _prune_context(
+        self,
+        context_text: str,
+        use_pruning: bool = True,
+        token_select_strategy: str = "erecap",
+        random_seed: Optional[int] = None,
+    ) -> Tuple[str, Dict]:
         """
         Prune context using E-RECAP token pruning, or return original if baseline.
         
@@ -95,7 +103,20 @@ class CooperativeMultiAgentPlanner:
         """
         if not use_pruning:
             # Baseline: return original context without pruning
-            return context_text, {"pruning_applied": False, "original_length": len(context_text)}
+            try:
+                tok = self.tokenizer(context_text, add_special_tokens=False)
+                ids = tok.get("input_ids", [])
+                if ids and isinstance(ids[0], list):
+                    ids = ids[0]
+                tokens_in = int(len(ids)) if ids else 0
+            except Exception:
+                tokens_in = 0
+            return context_text, {
+                "pruning_applied": False,
+                "original_length_chars": len(context_text),
+                "input_tokens": tokens_in,
+                "output_tokens": tokens_in,
+            }
         
         pruned_text, pruning_stats = prune_context_only(
             model=self.model,
@@ -104,6 +125,8 @@ class CooperativeMultiAgentPlanner:
             input_text=context_text,
             keep_ratio=self.keep_ratio,
             prune_layers=self.prune_layers,
+            token_select_strategy=token_select_strategy,
+            random_seed=random_seed,
         )
         return pruned_text, pruning_stats
     
@@ -111,7 +134,7 @@ class CooperativeMultiAgentPlanner:
         self,
         prompt: str,
         agent_config: AgentConfig,
-    ) -> str:
+    ) -> Tuple[str, Dict[str, Any]]:
         """
         Call the language model for a single agent.
         
@@ -123,7 +146,7 @@ class CooperativeMultiAgentPlanner:
             agent_config: Agent configuration.
         
         Returns:
-            Generated text output from the agent.
+            (output_text, generation_stats)
         """
         # Tokenize input
         inputs = self.tokenizer(prompt, return_tensors="pt", padding=True)
@@ -132,24 +155,45 @@ class CooperativeMultiAgentPlanner:
         if attention_mask is not None:
             attention_mask = attention_mask.to(self.device)
         
-        # Generate response
+        # Generate response (CUDA-synced timing to reduce async noise in tail analysis)
+        gen_t0 = time.time()
+        try:
+            if torch.cuda.is_available():
+                torch.cuda.synchronize()
+        except Exception:
+            pass
         with torch.no_grad():
             outputs = self.model.generate(
                 input_ids=input_ids,
                 attention_mask=attention_mask,
                 max_new_tokens=self.max_new_tokens,
-                min_new_tokens=10,  # Ensure minimum output length
+                min_new_tokens=self.min_new_tokens,  # Ensure minimum output length
                 do_sample=False,
                 temperature=1.0,
                 pad_token_id=self.tokenizer.eos_token_id,
                 eos_token_id=self.tokenizer.eos_token_id,
             )
+        try:
+            if torch.cuda.is_available():
+                torch.cuda.synchronize()
+        except Exception:
+            pass
+        gen_t1 = time.time()
         
         # Decode output (exclude input tokens)
         generated_ids = outputs[0][input_ids.shape[1]:]
         output_text = self.tokenizer.decode(generated_ids, skip_special_tokens=True)
-        
-        return output_text
+
+        gen_tokens = int(generated_ids.shape[0]) if hasattr(generated_ids, "shape") else int(len(generated_ids))
+        prompt_tokens = int(input_ids.shape[1])
+        generation_stats = {
+            "prompt_tokens": prompt_tokens,
+            "generated_tokens": gen_tokens,
+            "total_tokens": int(prompt_tokens + gen_tokens),
+            "max_new_tokens": int(self.max_new_tokens),
+            "gen_time_ms": float((gen_t1 - gen_t0) * 1000.0),
+        }
+        return output_text, generation_stats
     
     def _build_agent_prompt(
         self,
@@ -259,7 +303,7 @@ class CooperativeMultiAgentPlanner:
             
             # Call agent LLM
             inference_start = time.time()
-            llm_output = self._call_agent_llm(agent_prompt, agent_config)
+            llm_output, gen_stats = self._call_agent_llm(agent_prompt, agent_config)
             inference_time = time.time() - inference_start
             total_inference_time += inference_time
             
@@ -291,6 +335,10 @@ class CooperativeMultiAgentPlanner:
                 "pruning_time": prune_time,
                 "inference_time": inference_time,
                 "step_time": step_time,
+                "prompt_tokens": int(gen_stats.get("prompt_tokens", 0) or 0),
+                "generated_tokens": int(gen_stats.get("generated_tokens", 0) or 0),
+                "total_tokens": int(gen_stats.get("total_tokens", 0) or 0),
+                "max_new_tokens": int(gen_stats.get("max_new_tokens", 0) or 0),
                 "pruning_stats": pruning_stats,
                 "structured_output": structured_output.to_dict(),
             })
@@ -375,4 +423,3 @@ def create_planner(
     planner.load_agents_from_config()
     
     return planner
-
