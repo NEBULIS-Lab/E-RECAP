@@ -27,7 +27,7 @@ def main():
     parser.add_argument(
         "--model_path",
         type=str,
-        default="checkpoints/qwen2-7b-instruct",
+        default="checkpoints/model",
         help="Path to the language model",
     )
     parser.add_argument(
@@ -317,4 +317,3 @@ def main():
 
 if __name__ == "__main__":
     sys.exit(main())
-

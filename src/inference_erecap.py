@@ -21,8 +21,8 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 # ============================
 # Local model and pruning ckpt
 # ============================
-MODEL_PATH = "checkpoints/qwen2-7b-instruct"
-PRUNING_CKPT = "checkpoints/pruning_module.pt"
+MODEL_PATH = os.environ.get("ERECAP_MODEL_PATH", "checkpoints/model")
+PRUNING_CKPT = os.environ.get("ERECAP_PRUNING_CKPT", "checkpoints/pruning_module.pt")
 
 # ============================
 # Pruning config (must match Stage2)

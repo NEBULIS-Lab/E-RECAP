@@ -23,7 +23,7 @@ def run_lmeval(model_type, output_path):
         model_type: "baseline" or "erecap"
         output_path: Path to save results
     """
-    model_path = "checkpoints/qwen2-7b-instruct"
+    model_path = "checkpoints/model"
     pruner_path = "checkpoints/pruning_module.pt" if model_type == "erecap" else None
     
     # Check if lm-eval is installed
@@ -73,4 +73,3 @@ if __name__ == "__main__":
     args = parser.parse_args()
     
     run_lmeval(args.type, args.out)
-

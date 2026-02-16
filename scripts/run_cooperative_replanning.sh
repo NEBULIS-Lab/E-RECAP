@@ -4,7 +4,7 @@
 set -e
 
 # Default configuration
-MODEL_PATH="${MODEL_PATH:-checkpoints/qwen2-7b-instruct}"
+MODEL_PATH="${MODEL_PATH:-checkpoints/model}"
 PRUNING_CKPT="${PRUNING_CKPT:-checkpoints/pruning_module.pt}"
 KEEP_RATIO="${KEEP_RATIO:-0.7}"
 MAX_NEW_TOKENS="${MAX_NEW_TOKENS:-128}"
@@ -71,4 +71,3 @@ python3 src/multi_agent/run_cooperative_test.py \
     $SAVE_RESULTS \
     $BASELINE \
     ${NUM_RUNS:+--num_runs $NUM_RUNS}
-

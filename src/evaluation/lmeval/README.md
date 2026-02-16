@@ -31,7 +31,7 @@ src/evaluation/lmeval/
 # Run setup for a LongBench task
 python3 src/evaluation/lmeval/run_lmeval.py \
     --task_config data/LongBench/narrativeqa.json \
-    --model_name checkpoints/qwen2-7b-instruct \
+    --model_name checkpoints/<model-name> \
     --output results/lmeval_narrativeqa_baseline_setup.json
 ```
 
@@ -41,7 +41,7 @@ python3 src/evaluation/lmeval/run_lmeval.py \
 # Run setup with E-RECAP pruning
 python3 src/evaluation/lmeval/run_lmeval.py \
     --task_config data/LongBench/narrativeqa.json \
-    --model_name checkpoints/qwen2-7b-instruct \
+    --model_name checkpoints/<model-name> \
     --pruner checkpoints/pruning_module.pt \
     --output results/lmeval_narrativeqa_erecap_setup.json
 ```
@@ -63,7 +63,7 @@ bash scripts/run_lmeval_setup.sh data/LongBench/narrativeqa.json erecap
 | Argument | Required | Default | Description |
 |----------|----------|---------|-------------|
 | `--task_config` | Yes | - | Path to LongBench task JSON file |
-| `--model_name` | No | `checkpoints/qwen2-7b-instruct` | Model name or path |
+| `--model_name` | No | `checkpoints/<model-name>` | Model name or path |
 | `--pruner` | No | `None` | Path to pruning module (None for baseline) |
 | `--output` | No | Auto-generated | Output JSON path for setup result |
 | `--device` | No | `cuda` | Device to use |
@@ -75,7 +75,7 @@ bash scripts/run_lmeval_setup.sh data/LongBench/narrativeqa.json erecap
 [LM-EVAL] E-RECAP Evaluation Setup (No Inference)
 ============================================================
 Task config: data/LongBench/narrativeqa.json
-Model: checkpoints/qwen2-7b-instruct
+Model: checkpoints/<model-name>
 Pruning module: None (baseline)
 Device: cuda
 Output: results/lmeval_narrativeqa_baseline_setup.json
@@ -83,7 +83,7 @@ Output: results/lmeval_narrativeqa_baseline_setup.json
 
 [Step 1] Initializing model wrapper...
 [E-RECAPModel] Initialized (no model loaded)
-  Model: checkpoints/qwen2-7b-instruct
+  Model: checkpoints/<model-name>
   Pruning module: None (baseline)
   Device: cuda
   Mode: Baseline
@@ -100,7 +100,7 @@ Output: results/lmeval_narrativeqa_baseline_setup.json
 [LM-EVAL] Data path: data/LongBench/narrativeqa.json
 [LM-EVAL] Dataset size: 0 samples
 [LM-EVAL] Model wrapper: E-RECAPModel
-[LM-EVAL] Model config: checkpoints/qwen2-7b-instruct
+[LM-EVAL] Model config: checkpoints/<model-name>
 [LM-EVAL] Mode: Baseline (no pruning)
 [LM-EVAL] No inference executed in this setup phase.
 [OK] Setup evaluation completed
@@ -162,11 +162,11 @@ The setup result JSON contains:
   "task": "narrativeqa",
   "task_path": "data/LongBench/narrativeqa.json",
   "dataset_size": 100,
-  "model": "E-RECAPModel(name=checkpoints/qwen2-7b-instruct, mode=Baseline, pruner=None)",
+  "model": "E-RECAPModel(name=checkpoints/<model-name>, mode=Baseline, pruner=None)",
   "status": "setup_completed",
   "message": "No inference executed in setup phase",
   "setup_info": {
-    "model_name": "checkpoints/qwen2-7b-instruct",
+    "model_name": "checkpoints/<model-name>",
     "pruning_module": null,
     "device": "cuda",
     "task_config": "data/LongBench/narrativeqa.json",
@@ -230,4 +230,3 @@ In the actual evaluation phase, this framework will be integrated with lm-eval-h
 **Phase**: D - Setup Complete ✅  
 **Status**: Ready for actual inference implementation  
 **Last Updated**: Phase D Setup
-

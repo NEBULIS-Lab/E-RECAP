@@ -1,9 +1,0 @@
-{
-  "task_path": "data/LongBench_data/qasper.json",
-  "task_size": 200,
-  "eval_samples": 200,
-  "model": "checkpoints/qwen2-7b-instruct",
-  "mode": "SDTP",
-  "pruning_module": "checkpoints/pruning_module.pt",
-  "status": "setup_completed"
-}

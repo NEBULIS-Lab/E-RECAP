@@ -14,7 +14,7 @@ from transformers import AutoModelForCausalLM, AutoTokenizer
 # ============================
 # Config
 # ============================
-MODEL_PATH = "checkpoints/qwen2-7b-instruct"
+MODEL_PATH = "checkpoints/model"
 PRUNING_CKPT = "checkpoints/pruning_module.pt"
 
 PRUNE_LAYERS = [4, 7, 10, 13, 16, 19, 22, 25]
@@ -398,4 +398,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

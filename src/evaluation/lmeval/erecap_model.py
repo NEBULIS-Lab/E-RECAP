@@ -42,7 +42,7 @@ class ERECAPModel:
         Initialize E-RECAP model wrapper.
         
         Args:
-            model_name: Model name or path (e.g., "checkpoints/qwen2-7b-instruct")
+            model_name: Model name or path (e.g., "checkpoints/model")
             pruning_module: Path to pruning module checkpoint (None for baseline)
             device: Device to use (default: "cuda")
             **kwargs: Additional arguments for model initialization
@@ -220,4 +220,3 @@ class ERECAPModel:
             "is_erecap": self.is_erecap(),
             **self.config
         }
-

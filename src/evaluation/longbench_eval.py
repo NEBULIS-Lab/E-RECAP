@@ -48,7 +48,7 @@ def evaluate_longbench(model_type, task, output_path, max_length=32768, num_samp
     # Initialize model
     try:
         sd_model = ERECAPInference(
-            model_path="checkpoints/qwen2-7b-instruct",
+            model_path="checkpoints/model",
             pruner_path=pruner,
             device="cuda",
             use_flash=False,
@@ -140,4 +140,3 @@ if __name__ == "__main__":
         max_length=args.max_length,
         num_samples=args.num_samples
     )
-

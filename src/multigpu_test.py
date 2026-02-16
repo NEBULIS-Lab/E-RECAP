@@ -6,7 +6,7 @@ import torch
 import time
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
-MODEL_PATH = "checkpoints/qwen2-7b-instruct"
+MODEL_PATH = "checkpoints/model"
 
 # ======================================================
 # GPU memory query

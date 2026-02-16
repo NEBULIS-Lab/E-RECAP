@@ -29,7 +29,7 @@ import deepspeed  # requires deepspeed installed
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-MODEL_PATH = "checkpoints/qwen2-7b-instruct"
+MODEL_PATH = "checkpoints/model"
 PRUNING_CKPT = "checkpoints/pruning_module.pt"
 
 MAX_NEW_TOKENS = 128

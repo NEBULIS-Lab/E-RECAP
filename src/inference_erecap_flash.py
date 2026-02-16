@@ -10,7 +10,7 @@ from transformers import AutoModelForCausalLM, AutoTokenizer
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 # Local paths
-MODEL_PATH = "checkpoints/qwen2-7b-instruct"
+MODEL_PATH = "checkpoints/model"
 PRUNING_CKPT = "checkpoints/pruning_module.pt"
 
 # E-RECAP config (should match Stage2)

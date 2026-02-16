@@ -9,7 +9,7 @@ from .evaluator import LongBenchEvaluator, TeeOutput
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--task", type=str, required=True)
-    parser.add_argument("--model", type=str, default="checkpoints/qwen2-7b-instruct")
+    parser.add_argument("--model", type=str, default="checkpoints/model")
     parser.add_argument("--pruning_module", type=str, default=None)
     parser.add_argument("--output", type=str, default="results/longbench_result.json")
     parser.add_argument("--mode", type=str, default="baseline", choices=["baseline", "erecap"])

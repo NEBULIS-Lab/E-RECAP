@@ -52,7 +52,7 @@ def run_ablation(output_path="results/ablation_summary.json", test_prompt=None):
                 continue
             
             model = ERECAPInference(
-                model_path="checkpoints/qwen2-7b-instruct",
+                model_path="checkpoints/model",
                 pruner_path=pruner_path,
                 device="cuda"
             )
@@ -100,4 +100,3 @@ if __name__ == "__main__":
     args = parser.parse_args()
     
     run_ablation(args.out, args.prompt)
-

@@ -29,7 +29,7 @@ class ModelAPI:
     actual inference. Real implementation will be added in later phases.
     
     Attributes:
-        model_name: Model name or path (e.g., "checkpoints/qwen2-7b-instruct")
+        model_name: Model name or path (e.g., "checkpoints/model")
         pruning_module_path: Path to pruning module checkpoint (None for baseline)
         base_model: Placeholder for base model (not actually loaded)
         pruner: Placeholder for pruning module (not actually loaded)
@@ -209,4 +209,3 @@ class ModelAPI:
             "is_loaded": self.is_loaded,
             "is_erecap": self.is_erecap()
         }
-

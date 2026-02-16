@@ -19,7 +19,7 @@ import torch.nn as nn
 from transformers import AutoModelForCausalLM, AutoTokenizer
 from accelerate import init_empty_weights, load_checkpoint_and_dispatch
 
-MODEL_PATH = "checkpoints/qwen2-7b-instruct"
+MODEL_PATH = "checkpoints/model"
 PRUNING_CKPT = "checkpoints/pruning_module.pt"
 
 MAX_NEW_TOKENS = 128

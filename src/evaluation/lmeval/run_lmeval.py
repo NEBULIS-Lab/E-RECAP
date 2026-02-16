@@ -50,7 +50,7 @@ def main():
     parser.add_argument(
         "--model_name",
         type=str,
-        default="checkpoints/qwen2-7b-instruct",
+        default="checkpoints/model",
         help="Model name or path"
     )
     parser.add_argument(
@@ -175,4 +175,3 @@ def main():
 
 if __name__ == "__main__":
     sys.exit(main())
-

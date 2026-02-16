@@ -19,7 +19,7 @@ from datasets import load_from_disk
 from torch.utils.data import DataLoader
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
-DEFAULT_MODEL_PATH = "checkpoints/qwen2-7b-instruct"
+DEFAULT_MODEL_PATH = "checkpoints/model"
 DEFAULT_DATA_PATH = "dolly15k"
 DEFAULT_SAL_PATH = "checkpoints/saliency.pt"
 DEFAULT_OUT_PATH = "checkpoints/pruning_module.pt"

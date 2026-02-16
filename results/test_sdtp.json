@@ -1,7 +1,0 @@
-{
-  "task": "data/LongBench_data/hotpotqa.json",
-  "num_eval": 1,
-  "hit_rate": 1.0,
-  "model": "checkpoints/qwen2-7b-instruct",
-  "status": "inference_completed"
-}

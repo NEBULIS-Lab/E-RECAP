@@ -2,7 +2,7 @@
 set -e
 
 echo "========================================"
-echo "       E-RECAP / Qwen2 Environment Check"
+echo "         E-RECAP Environment Check"
 echo "========================================"
 echo
 
@@ -119,12 +119,14 @@ echo "=== 12. Disk Space ====================================="
 df -h .
 echo
 
-# 13. HF cache check
-echo "=== 13. HuggingFace Cache =============================="
-if [ -d "$HOME/.cache/modelscope/hub/models/qwen/Qwen2-7B-Instruct" ]; then
-  echo "Found: Qwen2-7B-Instruct cache"
+# 13. Model directory check (project-local)
+echo "=== 13. Model Directory (checkpoints/) =================="
+if ls checkpoints/*/config.json >/dev/null 2>&1; then
+  echo "Found at least one model under checkpoints/:"
+  ls -1 checkpoints/*/config.json | sed 's|/config.json$||' | sed 's|^|  - |'
 else
-  echo "Qwen2-7B-Instruct not found in HF cache"
+  echo "No model found under checkpoints/<model-name>/config.json"
+  echo "Tip: place a local HF model directory under checkpoints/ and pass --model_path to scripts."
 fi
 echo
 

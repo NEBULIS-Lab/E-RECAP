@@ -17,7 +17,7 @@ from torch.utils.data import DataLoader
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
 # Defaults (kept compatible with older notes)
-DEFAULT_MODEL_PATH = "checkpoints/qwen2-7b-instruct"
+DEFAULT_MODEL_PATH = "checkpoints/model"
 DEFAULT_DATA_PATH = "dolly15k"
 DEFAULT_PRUNE_LAYERS = [4, 7, 10, 13, 16, 19, 22, 25]
 

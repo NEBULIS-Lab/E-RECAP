@@ -387,7 +387,7 @@ class CooperativeMultiAgentPlanner:
 
 
 def create_planner(
-    model_path: str = "checkpoints/qwen2-7b-instruct",
+    model_path: str = "checkpoints/model",
     pruning_ckpt: str = "checkpoints/pruning_module.pt",
     keep_ratio: float = 0.7,
     prune_layers: Optional[List[int]] = None,

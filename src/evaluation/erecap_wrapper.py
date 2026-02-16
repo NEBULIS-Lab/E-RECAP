@@ -20,7 +20,7 @@ from inference_erecap import load_model_and_pruners, generate_text
 class ERECAPInference:
     """Wrapper class for E-RECAP inference evaluation"""
     
-    def __init__(self, model_path="checkpoints/qwen2-7b-instruct", 
+    def __init__(self, model_path="checkpoints/model", 
                  pruner_path=None, device="cuda", use_flash=False):
         """
         Args:
@@ -99,4 +99,3 @@ class ERECAPInference:
                     do_sample=False,
                 )
             return self.tokenizer.decode(out_ids[0], skip_special_tokens=True)
-

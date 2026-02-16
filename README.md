@@ -26,7 +26,7 @@ E-RECAP/
 ├── checkpoints/          # Model weights and checkpoints
 │   ├── pruning_module.pt    # Stage 2 trained Token Pruner (required for inference)
 │   ├── saliency.pt          # Stage 1 saliency baseline (optional)
-│   └── <model-name>/        # Your model directory (e.g., qwen2-7b-instruct, llama2-7b, etc.)
+│   └── <model-name>/        # Your local model directory (e.g., llama2-7b, mistral-7b, etc.)
 │       ├── config.json          # Model configuration (required)
 │       ├── model.safetensors    # Model weights (or model.bin, required)
 │       ├── tokenizer.json       # Tokenizer configuration (required)
@@ -167,12 +167,12 @@ pip install torch --index-url https://download.pytorch.org/whl/cu121
 
 #### Model Setup
 
-**Note:** This repository provides Qwen2-7B-Instruct as an example for running and testing E-RECAP. The required files (`checkpoints/qwen2-7b-instruct/`, `checkpoints/pruning_module.pt`, and `checkpoints/saliency.pt`) are included. However, E-RECAP supports any HuggingFace-compatible Transformer model - the pruning module is model-agnostic and works with any model architecture that has a `hidden_size` configuration.
+**Note:** This repository does **not** ship model weights or training checkpoints. You should provide your own HuggingFace-compatible model directory under `checkpoints/<model-name>/`. E-RECAP supports many transformer backbones; pruning modules and saliency checkpoints are generated locally by Stage 1/2.
 
 **Place your model files:**
 1. Download or copy your model to `checkpoints/<model-name>/` directory
    - The model directory should contain `config.json`, model weights (`.safetensors` or `.bin`), and tokenizer files
-   - Example: `checkpoints/qwen2-7b-instruct/`, `checkpoints/llama2-7b/`, etc.
+   - Example: `checkpoints/llama2-7b/`, `checkpoints/mistral-7b/`, etc.
 
 2. **Configure model path**
    - You can keep the default `MODEL_PATH` in code, or override it from CLI:

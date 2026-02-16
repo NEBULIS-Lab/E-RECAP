@@ -1,7 +1,0 @@
-{
-  "task": "data/LongBench_data/narrativeqa.json",
-  "num_eval": 5,
-  "hit_rate": 0.0,
-  "model": "checkpoints/qwen2-7b-instruct",
-  "status": "inference_completed"
-}
